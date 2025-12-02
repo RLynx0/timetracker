@@ -13,7 +13,7 @@ upload_destination = '\\T-Systems.int.neonet.at\Data\Special\TSA-Accounting\CATS
 file_name_format = '${year}${month}_${cost_center}_${performance_type}_${employee_number}.txt'
 keys   = ['Datum', 'I.00309999.99.99[.99]', 'Anwesenheitsart', 'Stunden', 'Beschreibung']
 values = ['$day/$month/$year', '$wbs', '$attendance_type', '$hours', '$description']
-delimeter = "\t"
+delimiter = "\t"
 
 [attendance_types]
 0216 = "Arbeitssuchetag"

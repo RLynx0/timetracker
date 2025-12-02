@@ -23,5 +23,5 @@ pub struct OutputConfig {
     pub file_name_format: FormatString,
     pub keys: Vec<String>,
     pub values: Vec<FormatString>,
-    pub delimeter: String,
+    pub delimiter: String,
 }
