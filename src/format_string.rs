@@ -58,7 +58,7 @@ impl<'de> Deserialize<'de> for FormatString {
                 E: serde::de::Error,
             {
                 match parse_format_string(v) {
-                    Ok((rem, parsed)) if rem.is_empty() => Ok(parsed),
+                    Ok(("", parsed)) => Ok(parsed),
                     Ok((rem, _)) => Err(E::custom(format!("failed at '{rem}'"))),
                     Err(e) => Err(E::custom(e)),
                 }
