@@ -1,6 +1,6 @@
 use std::{env, path::PathBuf};
 
-const FS_SCOPE_NAME: &'static str = "timetracker";
+const FS_SCOPE_NAME: &'static str = "timetrack";
 const DEFAULT_CONFIG_FILENAME: &'static str = "config.toml";
 const ACTIVITY_FILE_NAME: &'static str = "activities";
 const ENTRY_FILE_NAME: &'static str = "entries";
