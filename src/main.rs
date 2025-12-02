@@ -1,9 +1,22 @@
 #![allow(unused)] // TODO: Remove this when more things are implemented
 
-use std::{collections::HashMap, env, fs, path::PathBuf, process::exit, rc::Rc};
+const END_SENTINEL: &str = "__END";
 
+use std::{
+    collections::HashMap,
+    env, fs,
+    io::{self, BufReader, BufWriter, Read, Seek},
+    path::{Path, PathBuf},
+    process::exit,
+    rc::Rc,
+    str::FromStr,
+};
+
+use anyhow::anyhow;
 use chrono::{DateTime, Datelike, Local, NaiveDate, TimeDelta};
 use clap::Parser;
+use nom::IResult;
+use rev_lines::RawRevLines;
 
 use crate::{config::Config, opt::Opt};
 
@@ -39,6 +52,41 @@ fn default_config_path() -> anyhow::Result<PathBuf> {
     Ok(config_home)
 }
 
+fn get_last_state_entry(path: &Path) -> anyhow::Result<Option<ActivityEntry>> {
+    let file = fs::File::open(path)?;
+    let mut rev_lines = RawRevLines::new(file);
+    match rev_lines.next() {
+        Some(res) => {
+            let entry = &String::from_utf8(res?)?;
+            Ok(Some(parse_state_entry(entry)?))
+        }
+        None => Ok(None),
+    }
+}
+
+fn parse_state_entry(input_line: &str) -> anyhow::Result<ActivityEntry> {
+    let mut fields = input_line.split('\t');
+    let time_stamp = fields.next().ok_or(anyhow!("Missing timestamp"))?;
+    let activity_name = fields.next().ok_or(anyhow!("Missing activity name"))?;
+
+    let time_stamp = DateTime::from_str(time_stamp)?;
+    if activity_name == END_SENTINEL {
+        return Ok(ActivityEntry::End(time_stamp));
+    }
+
+    let attendance_type = fields.next().ok_or(anyhow!("Missing attendance type"))?;
+    let wbs = fields.next().ok_or(anyhow!("Missing wbs"))?;
+    let description = fields.next().unwrap_or_default();
+
+    Ok(ActivityEntry::Start(ActivityStart {
+        start: time_stamp,
+        activity_name: Rc::from(activity_name),
+        attendance_type: Rc::from(attendance_type),
+        description: Rc::from(description),
+        wbs: Rc::from(wbs),
+    }))
+}
+
 fn main() {
     let opt = Opt::parse();
     if let opt::SubCommand::DumpDefaultConfig = opt.command {
@@ -46,7 +94,10 @@ fn main() {
         exit(0)
     }
 
-    println!("{opt:#?}");
+    println!(
+        "{:#?}",
+        get_last_state_entry(&PathBuf::from("./state_sample"))
+    );
 
     let config_path = opt.config.unwrap_or_else(|| default_config_path().unwrap());
     let config_str = match fs::read_to_string(&config_path) {
@@ -64,8 +115,9 @@ fn main() {
             exit(1)
         }
     };
-    let config_result = toml::from_str::<Config>(&config_str);
-    println!("{config_result:#?}");
+
+    // let config_result = toml::from_str::<Config>(&config_str);
+    // println!("{config_result:#?}");
 }
 
 #[derive(Debug, Clone)]
@@ -84,10 +136,10 @@ impl ActivityEntry {
 
 #[derive(Debug, Clone)]
 struct ActivityStart {
-    attendance_type: Rc<str>,
-    activity_name: Rc<str>,
-    description: Rc<str>,
     start: DateTime<Local>,
+    activity_name: Rc<str>,
+    attendance_type: Rc<str>,
+    description: Rc<str>,
     wbs: Rc<str>,
 }
 
