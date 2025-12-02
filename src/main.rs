@@ -60,7 +60,7 @@ fn load_or_create_config(custom_path: Option<PathBuf>) -> anyhow::Result<Config>
 }
 
 fn make_guided_config() -> anyhow::Result<Config> {
-    let default = toml::from_str::<Config>(include_str!("../default_config.toml"))
+    let default = toml::from_str::<Config>(include_str!("./default_config.toml"))
         .expect("Default config must be valid");
 
     println!("\nFirst, please enter your name. (Firstname Lastname)");
