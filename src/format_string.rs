@@ -7,12 +7,9 @@ use std::{
 use nom::{
     IResult, Parser,
     branch::alt,
-    bytes::{
-        complete::{is_not, tag, take_while_m_n},
-        take_while,
-    },
-    combinator::recognize,
-    multi::many0,
+    bytes::complete::{is_not, tag, take_while1},
+    combinator::{opt, recognize},
+    multi::{many0, many1},
     sequence::{delimited, pair, preceded},
 };
 use serde::{Deserialize, de::Visitor};
@@ -105,12 +102,7 @@ fn parse_format_string(input: &str) -> IResult<&str, FormatString> {
 }
 
 fn parse_format_string_part(input: &str) -> IResult<&str, FormatStringPart> {
-    alt((
-        parse_part_variable,
-        parse_part_escaped_dollar,
-        parse_part_literal,
-    ))
-    .parse(input)
+    alt((parse_part_variable, parse_part_literal)).parse(input)
 }
 
 fn parse_part_variable(input: &str) -> IResult<&str, FormatStringPart> {
@@ -124,20 +116,14 @@ fn parse_part_variable(input: &str) -> IResult<&str, FormatStringPart> {
 
 fn parse_varname(input: &str) -> IResult<&str, &str> {
     recognize(pair(
-        take_while_m_n(1, 1, |c: char| c.is_ascii_alphabetic() || c == '_'),
-        take_while(|c: char| c.is_ascii_alphanumeric() || c == '_'),
+        take_while1(|c: char| c.is_ascii_alphabetic() || c == '_'),
+        opt(take_while1(|c: char| c.is_ascii_alphabetic() || c == '_')),
     ))
     .parse(input)
 }
 
-fn parse_part_escaped_dollar(input: &str) -> IResult<&str, FormatStringPart> {
-    tag("$$")
-        .map(|_| FormatStringPart::Literal(String::from("$")))
-        .parse(input)
-}
-
 fn parse_part_literal(input: &str) -> IResult<&str, FormatStringPart> {
-    is_not("$")
-        .map(|s: &str| FormatStringPart::Literal(s.to_owned()))
+    many1(alt((is_not("$"), preceded(tag("$"), tag("$")))))
+        .map(|s: Vec<&str>| FormatStringPart::Literal(s.join("")))
         .parse(input)
 }

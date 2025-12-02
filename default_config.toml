@@ -12,7 +12,7 @@ default_attendance = '0800'    # Your default attendance type
 upload_destination = '\\T-Systems.int.neonet.at\Data\Special\TSA-Accounting\CATS-Aktuell'
 file_name_format = '${year}${month}_${cost_center}_${performance_type}_${employee_number}.txt'
 keys   = ['Datum', 'I.00309999.99.99[.99]', 'Anwesenheitsart', 'Stunden', 'Beschreibung']
-values = ['$day/$month/${year}', '${wbs}', '${attendance_type}', '${hours}', '${description}']
+values = ['$day/$month/$year', '$wbs', '$attendance_type', '$hours', '$description']
 delimeter = "\t"
 
 [attendance_types]
