@@ -6,22 +6,22 @@ use crate::format_string::FormatString;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
-    employee_name: String,
-    employee_number: String,
-    cost_center: String,
-    performance_type: String,
-    accounting_cycle: String,
-    default_attendance: String,
+    pub employee_name: String,
+    pub employee_number: String,
+    pub cost_center: String,
+    pub performance_type: String,
+    pub accounting_cycle: String,
+    pub default_attendance: String,
 
-    output: OutputConfig,
-    attendance_types: HashMap<String, String>,
+    pub output: OutputConfig,
+    pub attendance_types: HashMap<String, String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct OutputConfig {
-    upload_destination: String,
-    file_name_format: FormatString,
-    keys: Vec<String>,
-    values: Vec<FormatString>,
-    delimeter: String,
+    pub upload_destination: String,
+    pub file_name_format: FormatString,
+    pub keys: Vec<String>,
+    pub values: Vec<FormatString>,
+    pub delimeter: String,
 }
