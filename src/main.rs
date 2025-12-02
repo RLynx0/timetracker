@@ -64,32 +64,15 @@ fn make_guided_config() -> anyhow::Result<Config> {
         .expect("Default config must be valid");
 
     println!("\nFirst, please enter your name. (Firstname Lastname)");
-    print!("Your Name: ");
-    stdout().flush()?;
-    let mut employee_name = String::new();
-    stdin().read_line(&mut employee_name)?;
+    let employee_name = get_input_string("Your Name")?;
 
     println!("\nWe'll need your personnel number as well.");
-    print!("Your emplyee id: ");
-    stdout().flush()?;
-    let mut employee_number = String::new();
-    stdin().read_line(&mut employee_number)?;
+    let employee_number = get_input_string("Your emplyee id")?;
 
     println!("\nPlease also enter your cost center ID.");
-    print!("Your cost center: ");
-    stdout().flush()?;
-    let mut cost_center = String::new();
-    stdin().read_line(&mut cost_center)?;
-
-    print!("Your performance type: ");
-    stdout().flush()?;
-    let mut performance_type = String::new();
-    stdin().read_line(&mut performance_type)?;
-
-    print!("Your accounting cycle: ");
-    stdout().flush()?;
-    let mut accounting_cycle = String::new();
-    stdin().read_line(&mut accounting_cycle)?;
+    let cost_center = get_input_string("Your cost center")?;
+    let performance_type = get_input_string("Your performance type")?;
+    let accounting_cycle = get_input_string("Your accounting cycle")?;
 
     println!("\nOkay, that's it!");
 
@@ -107,6 +90,14 @@ fn make_guided_config() -> anyhow::Result<Config> {
         accounting_cycle,
         ..default
     })
+}
+
+fn get_input_string(query: &str) -> anyhow::Result<String> {
+    let mut input = String::new();
+    print!("{query}: ");
+    stdout().flush()?;
+    stdin().read_line(&mut input)?;
+    Ok(input.trim().into())
 }
 
 fn get_last_state_entry(path: &Path) -> anyhow::Result<Option<ActivityEntry>> {
