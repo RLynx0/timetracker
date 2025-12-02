@@ -1,3 +1,5 @@
+#![allow(unused)] // TODO: Remove this when more things are implemented
+
 use std::{collections::HashMap, env, fs, path::PathBuf, rc::Rc};
 
 use chrono::{DateTime, Datelike, Local, NaiveDate, TimeDelta};
@@ -139,7 +141,7 @@ fn get_group_key<'a>(activity: &'a ActivityStart) -> ActivityGroupKey<'a> {
     }
 }
 
-fn vars_from_config<'a>(cfg: &'a Config) -> HashMap<&'static str, &'a str> {
+fn vars_from_config(cfg: &Config) -> HashMap<&'static str, &str> {
     HashMap::from([
         ("employee_name", cfg.employee_name.as_str()),
         ("employee_number", cfg.employee_number.as_str()),
@@ -149,9 +151,7 @@ fn vars_from_config<'a>(cfg: &'a Config) -> HashMap<&'static str, &'a str> {
     ])
 }
 
-fn vars_from_collapsed_activity<'a>(
-    activity: &'a CollapsedActivity,
-) -> HashMap<&'static str, Rc<str>> {
+fn vars_from_collapsed_activity(activity: &CollapsedActivity) -> HashMap<&'static str, Rc<str>> {
     let date = activity.start_of_first.naive_local().date();
     let seconds = activity.duration.as_seconds_f64();
     HashMap::from([
