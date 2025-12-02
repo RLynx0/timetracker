@@ -165,6 +165,20 @@ impl FromStr for ActivityEntry {
         }))
     }
 }
+impl ToString for ActivityEntry {
+    fn to_string(&self) -> String {
+        match self {
+            ActivityEntry::Start(ActivityStart {
+                start,
+                activity_name,
+                attendance_type,
+                description,
+                wbs,
+            }) => format!("{start}\t{activity_name}\t{attendance_type}\t{wbs}\t{description}"),
+            ActivityEntry::End(time) => format!("{time}\t{END_SENTINEL}"),
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 struct ActivityStart {
