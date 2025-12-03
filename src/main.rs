@@ -63,13 +63,8 @@ fn make_guided_config() -> anyhow::Result<Config> {
     let default = toml::from_str::<Config>(include_str!("./default_config.toml"))
         .expect("Default config must be valid");
 
-    println!("\nFirst, please enter your name. (Firstname Lastname)");
     let employee_name = get_input_string("Your Name")?;
-
-    println!("\nWe'll need your personnel number as well.");
     let employee_number = get_input_string("Your emplyee id")?;
-
-    println!("\nPlease also enter your cost center ID.");
     let cost_center = get_input_string("Your cost center")?;
     let performance_type = get_input_string("Your performance type")?;
     let accounting_cycle = get_input_string("Your accounting cycle")?;
@@ -94,9 +89,11 @@ fn make_guided_config() -> anyhow::Result<Config> {
 
 fn get_input_string(query: &str) -> anyhow::Result<String> {
     let mut input = String::new();
-    print!("{query}: ");
-    stdout().flush()?;
-    stdin().read_line(&mut input)?;
+    while input.trim().is_empty() {
+        print!("{query}: ");
+        stdout().flush()?;
+        stdin().read_line(&mut input)?;
+    }
     Ok(input.trim().into())
 }
 
