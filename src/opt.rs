@@ -2,12 +2,14 @@ use std::path::PathBuf;
 
 pub use clap::{Parser, Subcommand};
 
+use crate::IDLE_WBS_SENTINEL;
+
 #[derive(Debug, Clone, Parser)]
 #[command(author, version, about, long_about = None)]
 #[command(propagate_version = true)]
 pub struct Opt {
     #[command(subcommand)]
-    pub command: SubCommand,
+    pub command: TtrCommand,
 
     /// Specify custom config path
     #[clap(short, long)]
@@ -15,19 +17,26 @@ pub struct Opt {
 }
 
 #[derive(Debug, Clone, Subcommand)]
-pub enum SubCommand {
+pub enum TtrCommand {
     #[command()]
     Start(Start),
     #[command()]
     End(End),
-    #[command()]
-    New(New),
-    #[command()]
-    Remove(Remove),
-    #[command()]
-    List(List),
+    #[command(subcommand)]
+    Activity(ActivityCommand),
     #[command()]
     Generate(Generate),
+}
+
+/// Edit or list trackable activities
+#[derive(Debug, Clone, Subcommand)]
+pub enum ActivityCommand {
+    #[command()]
+    New(AddActivity),
+    #[command()]
+    Rm(RemoveActivity),
+    #[command()]
+    Ls(ListActivities),
 }
 
 /// Start tracking time for a specified activity
@@ -36,7 +45,7 @@ pub enum SubCommand {
 #[derive(Debug, Clone, Parser)]
 pub struct Start {
     /// Start tracking time for this activity
-    #[clap(default_value = "Idle")]
+    #[clap(default_value = IDLE_WBS_SENTINEL)]
     pub activity: String,
 
     /// Set a custom description for this entry
@@ -50,7 +59,7 @@ pub struct End;
 
 /// Define a new trackable activity
 #[derive(Debug, Clone, Parser)]
-pub struct New {
+pub struct AddActivity {
     /// The name of the new activity
     name: String,
 }
@@ -60,7 +69,7 @@ pub struct New {
 /// Entries using this activity will still be valid,
 /// but you won't be able to create new ones with it.
 #[derive(Debug, Clone, Parser)]
-pub struct Remove {
+pub struct RemoveActivity {
     /// The name of the activity to remove
     name: String,
 
@@ -71,7 +80,7 @@ pub struct Remove {
 
 /// List all trackable activities
 #[derive(Debug, Clone, Parser)]
-pub struct List;
+pub struct ListActivities;
 
 /// Generate output file for a specified time frame
 #[derive(Debug, Clone, Parser)]

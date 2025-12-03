@@ -20,21 +20,21 @@ mod files;
 mod format_string;
 mod opt;
 
+const IDLE_WBS_SENTINEL: &str = "Idle";
+
 fn main() {
     let opt = Opt::parse();
     let cfg_path = opt.config.as_ref();
 
     let operation_result = match opt.command {
-        opt::SubCommand::Start(opts) => {
+        opt::TtrCommand::Start(opts) => {
             load_or_create_config(cfg_path).map(|cfg| start_activity(&cfg, &opts))
         }
-        opt::SubCommand::End(opts) => {
+        opt::TtrCommand::End(opts) => {
             load_or_create_config(cfg_path).map(|cfg| end_activity(&cfg, &opts))
         }
-        opt::SubCommand::New(_) => todo!(),
-        opt::SubCommand::Remove(_) => todo!(),
-        opt::SubCommand::List(_) => todo!(),
-        opt::SubCommand::Generate(_) => todo!(),
+        opt::TtrCommand::Activity(_) => todo!(),
+        opt::TtrCommand::Generate(_) => todo!(),
     };
 }
 
