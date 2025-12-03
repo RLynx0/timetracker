@@ -40,7 +40,12 @@ pub enum ActivityEntry {
     End(ActivityEnd),
 }
 impl ActivityEntry {
-    fn new_start(activity_name: &str, attendance_type: &str, wbs: &str, description: &str) -> Self {
+    pub fn new_start(
+        activity_name: &str,
+        attendance_type: &str,
+        wbs: &str,
+        description: &str,
+    ) -> Self {
         ActivityEntry::Start(ActivityStart {
             time_stamp: Local::now(),
             activity_name: Rc::from(activity_name),
@@ -49,7 +54,7 @@ impl ActivityEntry {
             wbs: Rc::from(wbs),
         })
     }
-    fn new_end() -> Self {
+    pub fn new_end() -> Self {
         ActivityEntry::End(ActivityEnd {
             time_stamp: Local::now(),
         })

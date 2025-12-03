@@ -11,11 +11,7 @@ use std::{
 use clap::Parser;
 use rev_lines::RawRevLines;
 
-use crate::{
-    config::Config,
-    entry::ActivityEntry,
-    opt::{Opt, Start},
-};
+use crate::{config::Config, entry::ActivityEntry, opt::Opt};
 
 mod config;
 mod entry;
@@ -25,28 +21,43 @@ mod opt;
 
 fn main() {
     let opt = Opt::parse();
+    let cfg_path = opt.config.as_ref();
 
     let operation_result = match opt.command {
-        opt::SubCommand::Start(_) => todo!(),
-        opt::SubCommand::End(_) => todo!(),
+        opt::SubCommand::Start(opts) => {
+            load_or_create_config(cfg_path).map(|cfg| start_activity(&cfg, &opts))
+        }
+        opt::SubCommand::End(opts) => {
+            load_or_create_config(cfg_path).map(|cfg| end_activity(&cfg, &opts))
+        }
         opt::SubCommand::New(_) => todo!(),
         opt::SubCommand::Remove(_) => todo!(),
         opt::SubCommand::List(_) => todo!(),
         opt::SubCommand::Generate(_) => todo!(),
     };
-
-    let config = match load_or_create_config(opt.config) {
-        Ok(c) => c,
-        Err(e) => {
-            eprintln!("Failed to load or create config: {e}");
-            exit(1)
-        }
-    };
 }
 
-fn load_or_create_config(custom_path: Option<PathBuf>) -> anyhow::Result<Config> {
+fn start_activity(config: &Config, start_opts: &opt::Start) -> anyhow::Result<()> {
+    let activity_name = &start_opts.activity;
+    let wbs = resolve_wbs(activity_name)?;
+    let entry = ActivityEntry::new_start(activity_name, "0800", &wbs, "");
+    println!("{entry}");
+    Ok(())
+}
+
+fn end_activity(config: &Config, end_opts: &opt::End) -> anyhow::Result<()> {
+    let entry = ActivityEntry::new_end();
+    println!("{entry}");
+    Ok(())
+}
+
+fn resolve_wbs(activity_name: &str) -> anyhow::Result<String> {
+    Ok(String::from("ma dick hurts"))
+}
+
+fn load_or_create_config(custom_path: Option<&PathBuf>) -> anyhow::Result<Config> {
     let config_path = match custom_path {
-        None => files::default_config_path()?,
+        None => &files::default_config_path()?,
         Some(p) => p,
     };
     if fs::exists(&config_path)? {
