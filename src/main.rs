@@ -5,6 +5,7 @@ use std::{
     io::{self, Write, stdin, stdout},
     path::{Path, PathBuf},
     process::exit,
+    rc::Rc,
     str::FromStr,
 };
 
@@ -39,8 +40,21 @@ fn main() {
 
 fn start_activity(config: &Config, start_opts: &opt::Start) -> anyhow::Result<()> {
     let activity_name = &start_opts.activity;
-    let wbs = resolve_wbs(activity_name)?;
-    let entry = ActivityEntry::new_start(activity_name, "0800", &wbs, "");
+
+    let last_entry = get_last_state_entry(&files::get_entry_file_path()?)?;
+    let attendance = &match last_entry {
+        Some(ActivityEntry::Start(start_entry)) => start_entry.attendance().to_owned(),
+        _ => config.default_attendance.to_owned(),
+    };
+
+    let wbs = "I.03099999.99";
+
+    let desc = match &start_opts.description {
+        Some(s) => s.replace("\t", "    ").replace("\n", " -- "),
+        None => String::new(),
+    };
+
+    let entry = ActivityEntry::new_start(activity_name, attendance, wbs, &desc);
     println!("{entry}");
     Ok(())
 }
@@ -49,10 +63,6 @@ fn end_activity(config: &Config, end_opts: &opt::End) -> anyhow::Result<()> {
     let entry = ActivityEntry::new_end();
     println!("{entry}");
     Ok(())
-}
-
-fn resolve_wbs(activity_name: &str) -> anyhow::Result<String> {
-    Ok(String::from("ma dick hurts"))
 }
 
 fn load_or_create_config(custom_path: Option<&PathBuf>) -> anyhow::Result<Config> {
@@ -117,6 +127,9 @@ fn get_input_string(query: &str) -> anyhow::Result<String> {
 }
 
 fn get_last_state_entry(path: &Path) -> anyhow::Result<Option<ActivityEntry>> {
+    if !fs::exists(path)? {
+        return Ok(None);
+    }
     let file = fs::File::open(path)?;
     let mut rev_lines = RawRevLines::new(file);
     match rev_lines.next() {

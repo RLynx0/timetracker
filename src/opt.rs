@@ -38,6 +38,10 @@ pub struct Start {
     /// Start tracking time for this activity
     #[clap(default_value = "Idle")]
     pub activity: String,
+
+    /// Set a custom description for this entry
+    #[clap(short, long)]
+    pub description: Option<String>,
 }
 
 /// Stop tracking time

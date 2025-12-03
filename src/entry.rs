@@ -124,6 +124,11 @@ pub struct ActivityStart {
     description: Rc<str>,
     wbs: Rc<str>,
 }
+impl ActivityStart {
+    pub fn attendance(&self) -> &str {
+        &self.attendance_type
+    }
+}
 
 /// Grouping of activities with
 /// - Same wbs
