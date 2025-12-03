@@ -51,11 +51,19 @@ pub struct Start {
     /// Set a custom description for this entry
     #[clap(short, long)]
     pub description: Option<String>,
+
+    /// Pollute the terminal with output
+    #[clap(short, long)]
+    pub verbose: bool,
 }
 
 /// Stop tracking time
 #[derive(Debug, Clone, Parser)]
-pub struct End;
+pub struct End {
+    /// Pollute the terminal with output
+    #[clap(short, long)]
+    pub verbose: bool,
+}
 
 /// Define a new trackable activity
 #[derive(Debug, Clone, Parser)]

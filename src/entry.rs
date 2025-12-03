@@ -59,7 +59,7 @@ impl ActivityEntry {
             time_stamp: Local::now(),
         })
     }
-    fn time_stamp(&self) -> &DateTime<Local> {
+    pub fn time_stamp(&self) -> &DateTime<Local> {
         match self {
             ActivityEntry::Start(start) => &start.time_stamp,
             ActivityEntry::End(end) => &end.time_stamp,

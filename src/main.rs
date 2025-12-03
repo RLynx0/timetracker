@@ -49,19 +49,33 @@ fn start_activity(config: &Config, start_opts: &opt::Start) -> anyhow::Result<()
 
     let wbs = "I.03099999.99";
 
-    let desc = match &start_opts.description {
+    let descr = match &start_opts.description {
         Some(s) => s.replace("\t", "    ").replace("\n", " -- "),
         None => String::new(),
     };
 
-    let entry = ActivityEntry::new_start(activity_name, attendance, wbs, &desc);
-    println!("{entry}");
+    let entry = ActivityEntry::new_start(activity_name, attendance, wbs, &descr);
+    println!("Started tracking activity '{activity_name}'");
+
+    if start_opts.verbose {
+        let timestamp = entry.time_stamp();
+        (!descr.is_empty()).then(|| println!("-> Description: {descr}"));
+        println!("-> WBS: {wbs}");
+        println!("-> Attendance: {attendance}");
+        println!("-> Date: {}", timestamp.format("%Y-%m-%d"));
+        println!("-> Time: {}", timestamp.format("%H:%M:%S"));
+    }
     Ok(())
 }
 
 fn end_activity(config: &Config, end_opts: &opt::End) -> anyhow::Result<()> {
     let entry = ActivityEntry::new_end();
-    println!("{entry}");
+    println!("Stopped tracking time");
+    if end_opts.verbose {
+        let timestamp = entry.time_stamp();
+        println!("Date: {}", timestamp.format("%Y-%m-%d"));
+        println!("Time: {}", timestamp.format("%H:%M:%S"));
+    }
     Ok(())
 }
 
