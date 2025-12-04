@@ -37,7 +37,7 @@ fn handle_ttr_command(opt: &Opt) -> Result<()> {
     match &opt.command {
         opt::TtrCommand::Start(opts) => handle_start(&get_config(cfg_path)?, opts),
         opt::TtrCommand::Idle(opts) => handle_idle(&get_config(cfg_path)?, opts),
-        opt::TtrCommand::End(opts) => end_activity(&get_config(cfg_path)?, opts),
+        opt::TtrCommand::End(opts) => end_activity(opts),
         opt::TtrCommand::Activity(_) => todo!(),
         opt::TtrCommand::Generate(_) => todo!(),
     }
@@ -92,30 +92,41 @@ fn start_activity(
         .or(last_attendance)
         .unwrap_or(&config.default_attendance);
 
-    let wbs = IDLE_WBS_SENTINEL;
+    let wbs = resolve_wbs(activity_name)?;
 
-    let descr = match &description {
+    let description = match &description {
         Some(s) => s.replace("\t", "    ").replace("\n", " -- "),
         None => String::new(),
     };
 
-    let entry = ActivityEntry::new_start(activity_name, attendance, wbs, &descr);
+    let entry = ActivityEntry::new_start(activity_name, attendance, &wbs, &description);
     println!("Started tracking activity \u{001B}[32m'{activity_name}'\u{001B}[0m");
 
     let timestamp = entry.time_stamp();
     verbose_print_pretty! {
         verbose => [
-            "Description" => descr,
+            "Description" => description,
             "Attendance" => attendance,
             "WBS" => wbs,
             "Date" => timestamp.format("%Y-%m-%d"),
             "Time" => timestamp.format("%H:%M:%S"),
         ]
     };
-    Ok(())
+
+    write_entry(&entry)
 }
 
-fn end_activity(config: &Config, end_opts: &opt::End) -> Result<()> {
+fn resolve_wbs(activity_name: &str) -> Result<String> {
+    if activity_name == BUILTIN_ACTIVITY_IDLE {
+        return Ok(IDLE_WBS_SENTINEL.to_owned());
+    }
+
+    Err(color_eyre::eyre::format_err!(
+        "Activity {activity_name} does not exist."
+    ))
+}
+
+fn end_activity(end_opts: &opt::End) -> Result<()> {
     let entry = ActivityEntry::new_end();
     println!("Stopped tracking time");
 
@@ -126,6 +137,25 @@ fn end_activity(config: &Config, end_opts: &opt::End) -> Result<()> {
             "Time" => timestamp.format("%H:%M:%S"),
         ]
     );
+
+    write_entry(&entry)
+}
+
+fn write_entry(entry: &ActivityEntry) -> Result<()> {
+    let path = files::get_entry_file_path()?;
+    if !fs::exists(&path)? {
+        if let Some(p) = path.parent() {
+            fs::create_dir_all(p)?
+        }
+    }
+
+    let mut file = fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .append(true)
+        .open(path)?;
+
+    writeln!(&mut file, "{entry}")?;
     Ok(())
 }
 
