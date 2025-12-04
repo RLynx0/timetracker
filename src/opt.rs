@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 pub use clap::{Parser, Subcommand};
 
-use crate::IDLE_WBS_SENTINEL;
+use crate::BUILTIN_ACTIVITY_INTERN;
 
 #[derive(Debug, Clone, Parser)]
 #[command(author, version, about, long_about = None)]
@@ -20,6 +20,8 @@ pub struct Opt {
 pub enum TtrCommand {
     #[command()]
     Start(Start),
+    #[command()]
+    Idle(Idle),
     #[command()]
     End(End),
     #[command(subcommand)]
@@ -45,9 +47,23 @@ pub enum ActivityCommand {
 #[derive(Debug, Clone, Parser)]
 pub struct Start {
     /// Start tracking time for this activity
-    #[clap(default_value = IDLE_WBS_SENTINEL)]
+    #[clap(default_value = BUILTIN_ACTIVITY_INTERN)]
     pub activity: String,
 
+    /// Set a custom description for this entry
+    #[clap(short, long)]
+    pub description: Option<String>,
+
+    /// Pollute the terminal with output
+    #[clap(short, long)]
+    pub verbose: bool,
+}
+
+/// Start tracking time for the builtin `Idle` activity
+///
+/// This is an alias for `start Idle`
+#[derive(Debug, Clone, Parser)]
+pub struct Idle {
     /// Set a custom description for this entry
     #[clap(short, long)]
     pub description: Option<String>,

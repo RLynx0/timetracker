@@ -2,10 +2,9 @@
 
 use std::{
     fs,
-    io::{self, Write, stdin, stdout},
+    io::{Write, stdin, stdout},
     path::{Path, PathBuf},
     process::exit,
-    rc::Rc,
     str::FromStr,
 };
 
@@ -21,21 +20,26 @@ mod format_string;
 mod opt;
 
 const IDLE_WBS_SENTINEL: &str = "Idle";
+const BUILTIN_ACTIVITY_IDLE: &str = "Idle";
+const BUILTIN_ACTIVITY_INTERN: &str = "Intern";
 
 fn main() {
     let opt = Opt::parse();
-    let cfg_path = opt.config.as_ref();
+    if let Err(err) = handle_ttr_command(&opt) {
+        eprintln!("{err}");
+        exit(1)
+    }
+}
 
-    let operation_result = match opt.command {
-        opt::TtrCommand::Start(opts) => {
-            load_or_create_config(cfg_path).map(|cfg| start_activity(&cfg, &opts))
-        }
-        opt::TtrCommand::End(opts) => {
-            load_or_create_config(cfg_path).map(|cfg| end_activity(&cfg, &opts))
-        }
+fn handle_ttr_command(opt: &Opt) -> anyhow::Result<()> {
+    let cfg_path = opt.config.as_ref();
+    match &opt.command {
+        opt::TtrCommand::Start(opts) => start_activity(&get_config(cfg_path)?, opts),
+        opt::TtrCommand::Idle(opts) => start_idle(&get_config(cfg_path)?, opts),
+        opt::TtrCommand::End(opts) => end_activity(&get_config(cfg_path)?, opts),
         opt::TtrCommand::Activity(_) => todo!(),
         opt::TtrCommand::Generate(_) => todo!(),
-    };
+    }
 }
 
 macro_rules! verbose_print_pretty {
@@ -83,6 +87,38 @@ fn start_activity(config: &Config, start_opts: &opt::Start) -> anyhow::Result<()
     Ok(())
 }
 
+fn start_idle(config: &Config, idle_opts: &opt::Idle) -> anyhow::Result<()> {
+    let activity_name = BUILTIN_ACTIVITY_IDLE;
+
+    let last_entry = get_last_state_entry(&files::get_entry_file_path()?)?;
+    let attendance = &match last_entry {
+        Some(ActivityEntry::Start(start_entry)) => start_entry.attendance().to_owned(),
+        _ => config.default_attendance.to_owned(),
+    };
+
+    let wbs = IDLE_WBS_SENTINEL;
+
+    let descr = match &idle_opts.description {
+        Some(s) => s.replace("\t", "    ").replace("\n", " -- "),
+        None => String::new(),
+    };
+
+    let entry = ActivityEntry::new_start(activity_name, attendance, wbs, &descr);
+    println!("Started tracking activity \u{001B}[32m'{activity_name}'\u{001B}[0m");
+
+    let timestamp = entry.time_stamp();
+    verbose_print_pretty! {
+        idle_opts.verbose => [
+            "Description" => descr,
+            "Attendance" => attendance,
+            "WBS" => wbs,
+            "Date" => timestamp.format("%Y-%m-%d"),
+            "Time" => timestamp.format("%H:%M:%S"),
+        ]
+    };
+    Ok(())
+}
+
 fn end_activity(config: &Config, end_opts: &opt::End) -> anyhow::Result<()> {
     let entry = ActivityEntry::new_end();
     println!("Stopped tracking time");
@@ -97,7 +133,7 @@ fn end_activity(config: &Config, end_opts: &opt::End) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn load_or_create_config(custom_path: Option<&PathBuf>) -> anyhow::Result<Config> {
+fn get_config(custom_path: Option<&PathBuf>) -> anyhow::Result<Config> {
     let config_path = match custom_path {
         None => &files::default_config_path()?,
         Some(p) => p,
