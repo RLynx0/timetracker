@@ -106,9 +106,11 @@ pub struct Show {
     ///
     /// <n>                Show the last <n> entries
     /// <n>h | <n>hours    Show entries in the last <n> hours
+    /// <n>d | <n>days     Show entries in the last <n> days
     /// <n>m | <n>months   Show entries in the last <n> months
-    /// hour               Show entries in the current hour
-    /// month              Show entries in the current month
+    /// hour               Show entries from the current hour
+    /// day                Show entries from the current day
+    /// month              Show entries from the current month
     #[clap(verbatim_doc_comment, short, long, default_value = "1")]
     pub last: last_value::LastValue,
 }
