@@ -148,15 +148,13 @@ fn end_activity(end_opts: &opt::End) -> Result<()> {
 
 fn write_entry(entry: &ActivityEntry) -> Result<()> {
     let path = files::get_entry_file_path()?;
-    if !fs::exists(&path)? {
-        if let Some(p) = path.parent() {
+    if !fs::exists(&path)?
+        && let Some(p) = path.parent() {
             fs::create_dir_all(p)?
         }
-    }
 
     let mut file = fs::OpenOptions::new()
         .create(true)
-        .write(true)
         .append(true)
         .open(path)?;
 
