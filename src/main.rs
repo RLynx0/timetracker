@@ -39,7 +39,7 @@ fn main() {
 fn handle_ttr_command(opt: &Opt) -> Result<()> {
     match &opt.command {
         opt::TtrCommand::Start(opts) => handle_start(opts),
-        opt::TtrCommand::End(opts) => end_activity(opts),
+        opt::TtrCommand::End(opts) => handle_end(opts),
         opt::TtrCommand::Show(opts) => show_entries(opts),
         opt::TtrCommand::Generate(_) => todo!(),
         opt::TtrCommand::Activity(_) => todo!(),
@@ -119,26 +119,28 @@ fn sanitize_description(description: &str) -> String {
     description.replace("\t", "    ").replace("\n", " -- ")
 }
 
-fn end_activity(end_opts: &opt::End) -> Result<()> {
+fn handle_end(end_opts: &opt::End) -> Result<()> {
     let last_entry = get_last_state_entry(&files::get_entry_file_path()?)?;
+    match last_entry.as_ref() {
+        Some(ActivityEntry::Start(last_start)) => {
+            let entry = ActivityEntry::new_end();
+            write_entry(&entry)?;
 
-    if let Some(ActivityEntry::Start(last_start)) = last_entry.as_ref() {
-        let last_name = last_start.name();
-        println!("Stopped tracking activity \u{001B}[31m'{last_name}'\u{001b}[0m");
-    } else {
-        println!("Stopped tracking time");
+            let stopped = last_start.name();
+            println!("Stopped tracking \u{001B}[31m'{stopped}'\u{001b}[0m");
+            let timestamp = entry.time_stamp();
+            verbose_print_pretty!(
+                end_opts.verbose => [
+                    "Date" => timestamp.format("%Y-%m-%d"),
+                    "Time" => timestamp.format("%H:%M:%S"),
+                ]
+            );
+            Ok(())
+        }
+        _ => Err(color_eyre::eyre::format_err!(
+            "You are not tracking any activity"
+        )),
     }
-
-    let entry = ActivityEntry::new_end();
-    let timestamp = entry.time_stamp();
-    verbose_print_pretty!(
-        end_opts.verbose => [
-            "Date" => timestamp.format("%Y-%m-%d"),
-            "Time" => timestamp.format("%H:%M:%S"),
-        ]
-    );
-
-    write_entry(&entry)
 }
 
 fn write_entry(entry: &ActivityEntry) -> Result<()> {
