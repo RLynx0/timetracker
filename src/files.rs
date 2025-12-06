@@ -22,7 +22,7 @@ pub fn get_activity_dir_path() -> Result<PathBuf> {
 }
 
 pub fn get_main_config_path() -> Result<PathBuf> {
-    let mut path = get_xdg_config_home()?;
+    let mut path = get_config_home()?;
     path.push(DEFAULT_CONFIG_FILENAME);
     Ok(path)
 }
