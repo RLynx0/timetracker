@@ -1,22 +1,23 @@
 #![allow(unused)] // TODO: Remove this when more things are implemented
 
 use std::{
-    fs,
+    env, fs,
     io::{self, Write, stdin, stdout},
     path::Path,
-    process::exit,
+    process::{Command, exit},
     rc::Rc,
     str::FromStr,
 };
 
 use chrono::{DateTime, Datelike, Local, TimeDelta, Timelike};
 use clap::Parser;
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{Result, format_err};
 use rev_lines::RawRevLines;
 
 use crate::{
     config::Config,
     entry::ActivityEntry,
+    files::get_entry_file_path,
     opt::{Opt, last_value::LastValue},
     table::Table,
 };
@@ -49,6 +50,7 @@ fn handle_ttr_command(opt: &Opt) -> Result<()> {
         opt::TtrCommand::Start(opts) => start_activity(opts),
         opt::TtrCommand::End(opts) => end_activity(opts),
         opt::TtrCommand::Show(opts) => show_entries(opts),
+        opt::TtrCommand::Edit(opts) => open_entry_file(opts),
         opt::TtrCommand::Generate(_) => todo!(),
         opt::TtrCommand::Activity(_) => todo!(),
     }
@@ -300,6 +302,15 @@ fn print_entry_table(entries: impl IntoIterator<Item = ActivityEntry>) {
     ]);
 
     println!("{table}");
+}
+
+fn open_entry_file(opts: &opt::Edit) -> Result<()> {
+    let editor = env::var("EDITOR").unwrap_or(String::from("vi"));
+    _ = Command::new(&editor)
+        .arg(get_entry_file_path()?)
+        .status()
+        .map_err(|e| format_err!("Failed to open {editor}: {e}"))?;
+    Ok(())
 }
 
 fn get_config() -> Result<Config> {

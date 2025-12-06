@@ -21,6 +21,7 @@ pub enum TtrCommand {
     #[command()]
     Show(Show),
     #[command()]
+    Edit(Edit),
     Generate(Generate),
     #[command(subcommand)]
     Activity(ActivityCommand),
@@ -85,6 +86,12 @@ pub struct Show {
     #[clap(verbatim_doc_comment, short, long, default_value = "1")]
     pub last: last_value::LastValue,
 }
+
+/// Open the activity log in an editor
+///
+/// Set the EDITOR environment variable to use a specific program
+#[derive(Debug, Clone, Parser)]
+pub struct Edit;
 
 /// Generate output file for a specified time frame
 #[derive(Debug, Clone, Parser)]
