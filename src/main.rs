@@ -29,6 +29,11 @@ mod opt;
 const IDLE_WBS_SENTINEL: &str = "Idle";
 const BUILTIN_ACTIVITY_IDLE: &str = "Idle";
 
+const ANSII_RED: &str = "\u{001b}[31m";
+const ANSII_GREEN: &str = "\u{001b}[32m";
+const ANSII_BLUE: &str = "\u{001b}[34m";
+const ANSII_RESET: &str = "\u{001b}[0m";
+
 fn main() {
     let opt = Opt::parse();
     if let Err(err) = handle_ttr_command(&opt) {
@@ -55,7 +60,7 @@ macro_rules! verbose_print_pretty {
                     let s = $v.to_string();
                     let s = s.trim();
                     (!s.is_empty()).then(|| println!(
-                    "-> \u{001b}[34m{:12}\u{001b}[0m: {}",
+                    "-> {ANSII_BLUE}{:12}{ANSII_RESET}: {}",
                     $k, $v));
                 }
             )+
@@ -88,9 +93,9 @@ fn start_activity(start_opts: &opt::Start) -> Result<()> {
 
     if let Some(ActivityEntry::Start(last_start)) = last_entry.as_ref() {
         let last_name = last_start.name();
-        println!("Stopped tracking \u{001B}[31m'{last_name}'\u{001b}[0m");
+        println!("Stopped tracking {ANSII_RED}'{last_name}'{ANSII_RESET}");
     }
-    println!("Started tracking \u{001B}[32m'{activity_name}'\u{001B}[0m");
+    println!("Started tracking {ANSII_GREEN}'{activity_name}'{ANSII_RESET}");
 
     let timestamp = entry.time_stamp();
     verbose_print_pretty! {
@@ -128,7 +133,7 @@ fn end_activity(end_opts: &opt::End) -> Result<()> {
             write_entry(&entry)?;
 
             let stopped = last_start.name();
-            println!("Stopped tracking \u{001B}[31m'{stopped}'\u{001b}[0m");
+            println!("Stopped tracking {ANSII_RED}'{stopped}'{ANSII_RESET}");
             let timestamp = entry.time_stamp();
             verbose_print_pretty!(
                 end_opts.verbose => [
@@ -177,7 +182,7 @@ fn show_last_entry() -> Result<()> {
         }
         Some(ActivityEntry::Start(entry)) => {
             println!(
-                "Tracking activity \u{001B}[32m'{}'\u{001B}[0m",
+                "Tracking activity {ANSII_GREEN}'{}'{ANSII_RESET}",
                 entry.name()
             );
 
@@ -294,7 +299,8 @@ fn print_entry_table(entries: impl IntoIterator<Item = ActivityEntry>) {
     let description_width = col_description.iter().map(|s| s.chars().count()).max();
 
     println!(
-        "| \u{001b}[34m{}\u{001b}[0m{} | \u{001b}[34m{}\u{001b}[0m{} | \u{001b}[34m{}\u{001b}[0m{} | \u{001b}[34m{}\u{001b}[0m{} | \u{001b}[34m{}\u{001b}[0m{} |",
+        "| {0}{1}{11}{2} | {0}{3}{11}{4} | {0}{5}{11}{6} | {0}{7}{11}{8} | {0}{9}{11}{10} |",
+        ANSII_BLUE,
         col_time[0],
         " ".repeat(time_width.unwrap_or_default() - col_time[0].chars().count()),
         col_name[0],
@@ -305,6 +311,7 @@ fn print_entry_table(entries: impl IntoIterator<Item = ActivityEntry>) {
         " ".repeat(wbs_width.unwrap_or_default() - col_wbs[0].chars().count()),
         col_description[0],
         " ".repeat(description_width.unwrap_or_default() - col_description[0].chars().count()),
+        ANSII_RESET,
     );
     println!(
         "|-{}-|-{}-|-{}-|-{}-|-{}-|",
