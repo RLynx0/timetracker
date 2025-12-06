@@ -5,6 +5,7 @@ use std::{
     io::{self, Write, stdin, stdout},
     path::Path,
     process::exit,
+    rc::Rc,
     str::FromStr,
 };
 
@@ -202,11 +203,92 @@ fn show_multiple_entries(lval: &LastValue) -> Result<()> {
         LastValue::Months(_) => todo!(),
     };
 
-    for entry in reversed_entries.iter().rev() {
-        println!("{entry}")
+    print_entry_table(reversed_entries.into_iter().rev());
+    Ok(())
+}
+
+fn print_entry_table(entries: impl IntoIterator<Item = ActivityEntry>) {
+    let mut col_time: Vec<Rc<str>> = vec!["Timestamp".into()];
+    let mut col_name: Vec<Rc<str>> = vec!["Activity".into()];
+    let mut col_attendance: Vec<Rc<str>> = vec!["Attendance".into()];
+    let mut col_wbs: Vec<Rc<str>> = vec!["WBS".into()];
+    let mut col_description: Vec<Rc<str>> = vec!["Description".into()];
+
+    for entry in entries {
+        col_time.push(
+            entry
+                .time_stamp()
+                .format("%Y-%m-%d %H:%M:%S")
+                .to_string()
+                .into(),
+        );
+        match entry {
+            ActivityEntry::Start(activity_start) => {
+                col_name.push(activity_start.name().into());
+                col_attendance.push(activity_start.attendance().into());
+                col_wbs.push(activity_start.wbs().into());
+                col_description.push(
+                    match activity_start.description() {
+                        "" => "--",
+                        s => s,
+                    }
+                    .into(),
+                );
+            }
+            ActivityEntry::End(activity_end) => {
+                col_name.push("--".into());
+                col_attendance.push("--".into());
+                col_wbs.push("--".into());
+                col_description.push("--".into());
+            }
+        }
     }
 
-    Ok(())
+    let time_width = col_time.iter().map(|s| s.chars().count()).max();
+    let name_width = col_name.iter().map(|s| s.chars().count()).max();
+    let attendance_width = col_attendance.iter().map(|s| s.chars().count()).max();
+    let wbs_width = col_wbs.iter().map(|s| s.chars().count()).max();
+    let description_width = col_description.iter().map(|s| s.chars().count()).max();
+
+    println!(
+        "| \u{001b}[34m{}\u{001b}[0m{} | \u{001b}[34m{}\u{001b}[0m{} | \u{001b}[34m{}\u{001b}[0m{} | \u{001b}[34m{}\u{001b}[0m{} | \u{001b}[34m{}\u{001b}[0m{} |",
+        col_time[0],
+        " ".repeat(time_width.unwrap_or_default() - col_time[0].chars().count()),
+        col_name[0],
+        " ".repeat(name_width.unwrap_or_default() - col_name[0].chars().count()),
+        col_attendance[0],
+        " ".repeat(attendance_width.unwrap_or_default() - col_attendance[0].chars().count()),
+        col_wbs[0],
+        " ".repeat(wbs_width.unwrap_or_default() - col_wbs[0].chars().count()),
+        col_description[0],
+        " ".repeat(description_width.unwrap_or_default() - col_description[0].chars().count()),
+    );
+    println!(
+        "|-{}-|-{}-|-{}-|-{}-|-{}-|",
+        "-".repeat(time_width.unwrap_or_default()),
+        "-".repeat(name_width.unwrap_or_default()),
+        "-".repeat(attendance_width.unwrap_or_default()),
+        "-".repeat(wbs_width.unwrap_or_default()),
+        "-".repeat(description_width.unwrap_or_default()),
+    );
+
+    for ((((t, n), a), w), d) in col_time
+        .iter()
+        .zip(col_name)
+        .zip(col_attendance)
+        .zip(col_wbs)
+        .zip(col_description)
+        .skip(1)
+    {
+        println!(
+            "| {t}{} | {n}{} | {a}{} | {w}{} | {d}{} |",
+            " ".repeat(time_width.unwrap_or_default() - t.chars().count()),
+            " ".repeat(name_width.unwrap_or_default() - n.chars().count()),
+            " ".repeat(attendance_width.unwrap_or_default() - a.chars().count()),
+            " ".repeat(wbs_width.unwrap_or_default() - w.chars().count()),
+            " ".repeat(description_width.unwrap_or_default() - d.chars().count()),
+        )
+    }
 }
 
 fn get_config() -> Result<Config> {
