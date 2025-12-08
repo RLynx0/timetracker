@@ -89,7 +89,7 @@ pub struct Show {
     #[clap(verbatim_doc_comment, short, long, default_value = "0")]
     pub last: activity_quantity::ActivityQuantity,
 
-    /// Print raw activity entries instead of a table
+    /// Print raw activity values instead of a table
     #[clap(short, long)]
     pub raw: bool,
 }

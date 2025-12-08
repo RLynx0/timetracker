@@ -15,15 +15,15 @@ use color_eyre::eyre::{Result, format_err};
 use rev_lines::RawRevLines;
 
 use crate::{
+    activity::{Activity, ActivityEntry},
     config::Config,
-    entry::{Activity, ActivityEntry},
     files::get_entry_file_path,
     opt::{Opt, activity_quantity::ActivityQuantity},
     table::{ColorOptions, Table},
 };
 
+mod activity;
 mod config;
-mod entry;
 mod files;
 mod format_string;
 mod opt;
@@ -355,7 +355,7 @@ fn print_activitiy_table(activities: impl IntoIterator<Item = Activity>) {
             }),
         }
     };
-    println!("{}", table.to_string_with_options(&print_options));
+    println!("{}", table.to_string_with_options(print_options));
 }
 
 fn open_entry_file(opts: &opt::Edit) -> Result<()> {
@@ -459,7 +459,7 @@ fn get_last_n_activities(count: usize) -> Result<Vec<Activity>> {
         }
     }
 
-    Ok(activities)
+    Ok(activities.into_iter().rev().collect())
 }
 
 /// Get activities since `start_time` in chronological order
