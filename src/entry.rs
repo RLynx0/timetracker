@@ -35,6 +35,61 @@ impl From<chrono::format::ParseError> for ParseEntryError {
 }
 
 #[derive(Debug, Clone)]
+pub struct Activity {
+    pub start_entry: ActivityStart,
+    pub end: Option<DateTime<Local>>,
+}
+impl Activity {
+    pub fn new(start_entry: ActivityStart, end: Option<DateTime<Local>>) -> Self {
+        Activity { start_entry, end }
+    }
+    pub fn new_completed(start_entry: ActivityStart, end: DateTime<Local>) -> Self {
+        Activity {
+            start_entry,
+            end: Some(end),
+        }
+    }
+    pub fn new_ongoing(start_entry: ActivityStart) -> Self {
+        Activity {
+            start_entry,
+            end: None,
+        }
+    }
+
+    pub fn start_time(&self) -> &DateTime<Local> {
+        self.start_entry.time_stamp()
+    }
+    pub fn end_time(&self) -> Option<&DateTime<Local>> {
+        self.end.as_ref()
+    }
+    pub fn name(&self) -> &str {
+        self.start_entry.name()
+    }
+    pub fn attendance(&self) -> &str {
+        self.start_entry.attendance()
+    }
+    pub fn description(&self) -> &str {
+        self.start_entry.description()
+    }
+    pub fn wbs(&self) -> &str {
+        self.start_entry.wbs()
+    }
+}
+impl Display for Activity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let ActivityStart {
+            time_stamp: start,
+            activity_name: name,
+            attendance_type: attendance,
+            description: descr,
+            wbs,
+        } = &self.start_entry;
+        let end = self.end_time().map(|s| s.to_string()).unwrap_or_default();
+        write!(f, "{start}\t{end}\t{name}\t{attendance}\t{wbs}\t{descr}")
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum ActivityEntry {
     Start(ActivityStart),
     End(ActivityEnd),

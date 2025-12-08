@@ -76,6 +76,7 @@ pub struct End {
 pub struct Show {
     /// Specify how many activities should be shown
     ///
+    /// 0                  Show the currently tracked activity
     /// <n>                Show the last <n> tracked activities
     /// <n>h | <n>hours    Show activity in the last <n> hours
     /// <n>d | <n>days     Show activity in the last <n> days
@@ -85,7 +86,7 @@ pub struct Show {
     /// day                Show activity from the current day
     /// week               Show activity from the current week
     /// month              Show activity from the current month
-    #[clap(verbatim_doc_comment, short, long, default_value = "1")]
+    #[clap(verbatim_doc_comment, short, long, default_value = "0")]
     pub last: activity_quantity::ActivityQuantity,
 
     /// Print raw activity entries instead of a table

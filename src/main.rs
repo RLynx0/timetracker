@@ -16,7 +16,7 @@ use rev_lines::RawRevLines;
 
 use crate::{
     config::Config,
-    entry::ActivityEntry,
+    entry::{Activity, ActivityEntry},
     files::get_entry_file_path,
     opt::{Opt, activity_quantity::ActivityQuantity},
     table::{ColorOptions, Table},
@@ -49,7 +49,7 @@ fn handle_ttr_command(opt: &Opt) -> Result<()> {
     match &opt.command {
         opt::TtrCommand::Start(opts) => start_activity(opts),
         opt::TtrCommand::End(opts) => end_activity(opts),
-        opt::TtrCommand::Show(opts) => show_entries(opts),
+        opt::TtrCommand::Show(opts) => show_activities(opts),
         opt::TtrCommand::Edit(opts) => open_entry_file(opts),
         opt::TtrCommand::Generate(_) => todo!(),
         opt::TtrCommand::Activity(_) => todo!(),
@@ -78,7 +78,7 @@ fn start_activity(start_opts: &opt::Start) -> Result<()> {
 
     let wbs = resolve_wbs(activity_name)?;
 
-    let last_entry = get_last_entry(&files::get_entry_file_path()?)?;
+    let last_entry = get_last_entry()?;
     let last_attendance = last_entry.as_ref().and_then(|e| e.attendance_type());
     let attendance = start_opts
         .attendance
@@ -130,7 +130,7 @@ fn sanitize_description(description: &str) -> String {
 }
 
 fn end_activity(end_opts: &opt::End) -> Result<()> {
-    let last_entry = get_last_entry(&files::get_entry_file_path()?)?;
+    let last_entry = get_last_entry()?;
     match last_entry.as_ref() {
         Some(ActivityEntry::Start(last_start)) => {
             let entry = ActivityEntry::new_end();
@@ -170,15 +170,15 @@ fn write_entry(entry: &ActivityEntry) -> Result<()> {
     Ok(())
 }
 
-fn show_entries(show_opts: &opt::Show) -> Result<()> {
+fn show_activities(show_opts: &opt::Show) -> Result<()> {
     match &show_opts.last {
-        ActivityQuantity::SingleEntries(1) => show_current_entry(show_opts),
-        lval => show_multiple_entries(show_opts, lval),
+        ActivityQuantity::SingleActivities(0) => show_current_entry(show_opts),
+        quantity => show_multiple_activities(show_opts, quantity),
     }
 }
 
 fn show_current_entry(show_opts: &opt::Show) -> Result<()> {
-    let entry = get_last_entry(&files::get_entry_file_path()?)?;
+    let entry = get_last_entry()?;
     match entry {
         None => println!("You have not recorded any data yet"),
         Some(entry) if show_opts.raw => println!("{entry}"),
@@ -231,11 +231,9 @@ fn format_time_delta(delta: &TimeDelta) -> String {
     out
 }
 
-fn show_multiple_entries(show_opts: &opt::Show, lval: &ActivityQuantity) -> Result<()> {
-    let reversed_entries = match lval {
-        ActivityQuantity::SingleEntries(n) => {
-            get_last_n_entries(&files::get_entry_file_path()?, *n as usize)?
-        }
+fn show_multiple_activities(show_opts: &opt::Show, quantity: &ActivityQuantity) -> Result<()> {
+    let activities = match quantity {
+        ActivityQuantity::SingleActivities(n) => get_last_n_activities(*n as usize)?,
         ActivityQuantity::Hours(h) => {
             let start_time = Local::now()
                 .with_minute(0)
@@ -245,7 +243,7 @@ fn show_multiple_entries(show_opts: &opt::Show, lval: &ActivityQuantity) -> Resu
                 .with_nanosecond(0)
                 .unwrap()
                 - TimeDelta::hours(*h);
-            get_entries_since(&files::get_entry_file_path()?, &start_time)?
+            get_activities_since(&start_time)?
         }
         ActivityQuantity::Days(d) => {
             let start_time = Local::now()
@@ -258,7 +256,7 @@ fn show_multiple_entries(show_opts: &opt::Show, lval: &ActivityQuantity) -> Resu
                 .with_nanosecond(0)
                 .unwrap()
                 - TimeDelta::days(*d);
-            get_entries_since(&files::get_entry_file_path()?, &start_time)?
+            get_activities_since(&start_time)?
         }
         ActivityQuantity::Weeks(w) => {
             let now = Local::now();
@@ -273,7 +271,7 @@ fn show_multiple_entries(show_opts: &opt::Show, lval: &ActivityQuantity) -> Resu
                 .with_nanosecond(0)
                 .unwrap()
                 - TimeDelta::days(7 * w + day_offset as i64);
-            get_entries_since(&files::get_entry_file_path()?, &start_time)?
+            get_activities_since(&start_time)?
         }
         ActivityQuantity::Months(m) => {
             let start_time = Local::now()
@@ -288,57 +286,60 @@ fn show_multiple_entries(show_opts: &opt::Show, lval: &ActivityQuantity) -> Resu
                 .with_nanosecond(0)
                 .unwrap();
             // TODO: subtract m months
-            get_entries_since(&files::get_entry_file_path()?, &start_time)?
+            get_activities_since(&start_time)?
         }
     };
 
-    if reversed_entries.is_empty() {
+    if activities.is_empty() {
         println!("You have not recorded any data yet");
     } else if show_opts.raw {
-        for entry in reversed_entries.iter().rev() {
-            println!("{entry}");
+        for activity in activities {
+            println!("{activity}");
         }
     } else {
-        print_entry_table(reversed_entries.into_iter().rev());
+        print_activitiy_table(activities);
     }
 
     Ok(())
 }
 
-fn print_entry_table(entries: impl IntoIterator<Item = ActivityEntry>) {
+fn print_activitiy_table(activities: impl IntoIterator<Item = Activity>) {
     let mut col_date: Vec<Rc<str>> = Vec::new();
     let mut col_start: Vec<Rc<str>> = Vec::new();
+    let mut col_end: Vec<Rc<str>> = Vec::new();
+    let mut col_hours: Vec<Rc<str>> = Vec::new();
     let mut col_name: Vec<Rc<str>> = Vec::new();
     let mut col_attendance: Vec<Rc<str>> = Vec::new();
     let mut col_wbs: Vec<Rc<str>> = Vec::new();
     let mut col_description: Vec<Rc<str>> = Vec::new();
     let none_value: Rc<str> = "--".into();
-    for entry in entries {
-        let timestamp = entry.time_stamp();
-        col_date.push(timestamp.format("%Y-%m-%d").to_string().into());
-        col_start.push(timestamp.format("%H:%M:%S").to_string().into());
-        match entry {
-            ActivityEntry::Start(activity_start) => {
-                col_name.push(activity_start.name().into());
-                col_attendance.push(activity_start.attendance().into());
-                col_wbs.push(activity_start.wbs().into());
-                col_description.push(match activity_start.description() {
-                    "" => none_value.clone(),
-                    s => s.into(),
-                });
-            }
-            ActivityEntry::End(_) => {
-                col_name.push(none_value.clone());
-                col_attendance.push(none_value.clone());
-                col_wbs.push(none_value.clone());
-                col_description.push(none_value.clone());
-            }
-        }
+
+    for activity in activities {
+        let start = activity.start_time();
+        let time_to = activity.end_time().copied().unwrap_or(Local::now());
+        let hours = (time_to - start).as_seconds_f64() / 3600.0;
+
+        col_date.push(start.format("%Y-%m-%d").to_string().into());
+        col_start.push(start.format("%H:%M:%S").to_string().into());
+        col_end.push(match activity.end_time() {
+            Some(t) => t.format("%H:%M:%S").to_string().into(),
+            None => none_value.clone(),
+        });
+        col_hours.push(format!("{hours:.2}").into());
+        col_name.push(activity.name().into());
+        col_attendance.push(activity.attendance().into());
+        col_wbs.push(activity.wbs().into());
+        col_description.push(match activity.description() {
+            "" => none_value.clone(),
+            s => s.into(),
+        });
     }
 
     let table = Table::from([
         ("Date", col_date),
         ("Start", col_start),
+        ("End", col_end),
+        ("Hours", col_hours),
         ("Activity", col_name),
         ("Attendance", col_attendance),
         ("WBS", col_wbs),
@@ -424,24 +425,65 @@ fn get_input_string(query: &str) -> Result<String> {
     Ok(input.trim().into())
 }
 
-fn get_last_entry(path: &Path) -> Result<Option<ActivityEntry>> {
-    get_last_n_entries(path, 1).map(|v| v.into_iter().next())
+fn get_last_entry() -> Result<Option<ActivityEntry>> {
+    let path = &files::get_entry_file_path()?;
+    if !fs::exists(path)? {
+        return Ok(None);
+    }
+    let file = fs::File::open(path)?;
+    match RawRevLines::new(file).next() {
+        Some(l) => Ok(Some(entry_from_byte_result(l)?)),
+        None => Ok(None),
+    }
 }
 
-/// Fetch the last `count` entries from `path` in reversed order
-fn get_last_n_entries(path: &Path, count: usize) -> Result<Vec<ActivityEntry>> {
+/// Get the last `count` activities in chronological order
+fn get_last_n_activities(count: usize) -> Result<Vec<Activity>> {
+    let path = &files::get_entry_file_path()?;
     if !fs::exists(path)? {
         return Ok(Vec::new());
     }
+
     let file = fs::File::open(path)?;
-    RawRevLines::new(file)
-        .take(count)
-        .map(entry_from_byte_result)
-        .collect::<Result<Vec<_>>>()
+    let mut rev_lines = RawRevLines::new(file);
+    let mut activities = Vec::new();
+    let mut last_timestamp = None;
+    while let Some(line) = rev_lines.next()
+        && activities.len() < count
+    {
+        let entry = entry_from_byte_result(line)?;
+        let end_timestamp = last_timestamp.take();
+        last_timestamp = Some(*entry.time_stamp());
+        if let (ActivityEntry::Start(start_entry)) = (entry) {
+            activities.push(Activity::new(start_entry, end_timestamp))
+        }
+    }
+
+    Ok(activities)
 }
 
-/// Fetch entries since `start_time` from `path` in reversed order
-fn get_entries_since(path: &Path, start_time: &DateTime<Local>) -> Result<Vec<ActivityEntry>> {
+/// Get activities since `start_time` in chronological order
+fn get_activities_since(start_time: &DateTime<Local>) -> Result<Vec<Activity>> {
+    let mut activities = Vec::new();
+    let mut last_entry = None;
+    for entry in get_backwards_entries_since(start_time)?.into_iter().rev() {
+        if let Some(last) = last_entry {
+            activities.push(Activity::new_completed(last, *entry.time_stamp()));
+        }
+        last_entry = match entry {
+            ActivityEntry::Start(activity_start) => Some(activity_start),
+            ActivityEntry::End(activity_end) => None,
+        };
+    }
+    if let Some(last) = last_entry {
+        activities.push(Activity::new_ongoing(last));
+    }
+    Ok(activities)
+}
+
+/// Fetch entries since `start_time` in reversed order
+fn get_backwards_entries_since(start_time: &DateTime<Local>) -> Result<Vec<ActivityEntry>> {
+    let path = &files::get_entry_file_path()?;
     if !fs::exists(path)? {
         return Ok(Vec::new());
     }
@@ -454,7 +496,6 @@ fn get_entries_since(path: &Path, start_time: &DateTime<Local>) -> Result<Vec<Ac
         }
         entries.push(entry);
     }
-
     Ok(entries)
 }
 
