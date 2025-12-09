@@ -71,7 +71,7 @@ impl FromStr for Activity {
         let mut fields = input.split("\t");
         let name = fields.next().ok_or(ParseActivityErr::MissingName)?;
         let wbs = fields.next().ok_or(ParseActivityErr::MissingWbs)?;
-        let default_description = match fields.next() {
+        let default_description = match fields.next().map(|s| s.trim()) {
             Some("") => None,
             opt => opt.map(Rc::from),
         };
