@@ -20,7 +20,9 @@ use crate::{
     config::Config,
     files::get_entry_file_path,
     opt::Opt,
-    printable::{AnsiiColor, ColorOptions, Table, TablePrintOptions},
+    printable::{
+        AlignedList, AnsiiColor, ColorOptions, ListPrintOptions, Table, TablePrintOptions,
+    },
 };
 
 mod activity;
@@ -58,19 +60,33 @@ fn handle_ttr_command(opt: &Opt) -> Result<()> {
     }
 }
 
-macro_rules! verbose_print_pretty {
-    ($cond:expr => [$($k:expr => $v:expr,)+]) => {
-        if $cond {
-            $(
-                {
-                    let s = $v.to_string();
-                    let s = s.trim();
-                    (!s.is_empty()).then(|| println!(
-                    "-> {ANSII_BLUE}{:12}{ANSII_RESET}: {}",
-                    $k, $v));
+macro_rules! print_list {
+    ($($k:expr => $v: expr,)*) => {
+        println!("{}", crate::printable::AlignedList::from([
+            $(($k, $v)),*
+        ]).with_options(crate::printable::ListPrintOptions {
+            colors: std::io::stdout().is_terminal().then_some(
+                crate::printable::ColorOptions {
+                    headers: crate::printable::AnsiiColor::Blue,
+                    lines: crate::printable::AnsiiColor::None,
                 }
-            )+
-        }
+            ),
+        }));
+    }
+}
+macro_rules! print_table {
+    ($($k:expr => $vs: expr,)*) => {
+        println!("{}", crate::printable::Table::from([
+            $(($k, $vs)),*
+        ]).with_options(crate::printable::TablePrintOptions {
+            chars: crate::printable::TableCharOptions::rounded(),
+            colors: std::io::stdout().is_terminal().then_some(
+                crate::printable::ColorOptions {
+                    headers: crate::printable::AnsiiColor::Blue,
+                    lines: crate::printable::AnsiiColor::None,
+                }
+            ),
+        }));
     };
 }
 
@@ -104,16 +120,15 @@ fn start_activity(start_opts: &opt::Start) -> Result<()> {
     println!("Started tracking {ANSII_GREEN}'{activity_name}'{ANSII_RESET}");
 
     let timestamp = entry.time_stamp();
-    verbose_print_pretty! {
-        start_opts.verbose => [
+    if start_opts.verbose {
+        print_list! {
             "Description" => description,
-            "Attendance" => attendance,
+            "Attendance" => attendance.to_owned(),
             "WBS" => wbs,
-            "Date" => timestamp.format("%Y-%m-%d"),
-            "Time" => timestamp.format("%H:%M:%S"),
-        ]
-    };
-
+            "Date" => timestamp.format("%Y-%m-%d").to_string(),
+            "Time" => timestamp.format("%H:%M:%S").to_string(),
+        }
+    }
     Ok(())
 }
 
@@ -141,12 +156,12 @@ fn end_activity(end_opts: &opt::End) -> Result<()> {
             let stopped = last_start.name();
             println!("Stopped tracking {ANSII_RED}'{stopped}'{ANSII_RESET}");
             let timestamp = entry.time_stamp();
-            verbose_print_pretty!(
-                end_opts.verbose => [
+            if end_opts.verbose {
+                print_list! {
                     "Date" => timestamp.format("%Y-%m-%d"),
-                    "Time" => timestamp.format("%H:%M:%S"),
-                ]
-            );
+                    "Time" => timestamp.format("%H-%M-%S"),
+                }
+            }
             Ok(())
         }
         _ => Err(color_eyre::eyre::format_err!(
@@ -194,14 +209,12 @@ fn show_current_entry(show_opts: &opt::Show) -> Result<()> {
             );
 
             let delta = Local::now() - entry.time_stamp();
-            verbose_print_pretty! {
-                true => [
-                    "Description" => entry.description(),
-                    "Attendance" => entry.attendance(),
-                    "WBS" => entry.wbs(),
-                    "Tracked for" => format_time_delta(&delta),
-                ]
-            };
+            print_list! {
+                "Description" => entry.description(),
+                "Attendance" => entry.attendance(),
+                "WBS" => entry.wbs(),
+                "Tracked for" => &format_time_delta(&delta),
+            }
         }
     }
     Ok(())
@@ -284,26 +297,16 @@ fn print_activitiy_table(activities: impl IntoIterator<Item = Activity>) {
         });
     }
 
-    println!(
-        "{}",
-        Table::from([
-            ("Date", col_date),
-            ("Start", col_start),
-            ("End", col_end),
-            ("Hours", col_hours),
-            ("Activity", col_name),
-            ("Attendance", col_attendance),
-            ("WBS", col_wbs),
-            ("Description", col_description),
-        ])
-        .with_options(TablePrintOptions {
-            chars: printable::CharOptions::rounded(),
-            colors: io::stdout().is_terminal().then_some(ColorOptions {
-                headers: AnsiiColor::Blue,
-                lines: AnsiiColor::None,
-            }),
-        })
-    );
+    print_table! {
+        "Date" => col_date,
+        "Start" => col_start,
+        "End" => col_end,
+        "Hours" => col_hours,
+        "Activity" => col_name,
+        "Attendance" => col_attendance,
+        "WBS" => col_wbs,
+        "Description" => col_description,
+    }
 }
 
 fn open_entry_file(opts: &opt::Edit) -> Result<()> {

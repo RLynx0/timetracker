@@ -1,16 +1,6 @@
 use std::fmt::{Display, Write};
 
 #[derive(Clone, Debug, Default)]
-pub struct TablePrintOptions {
-    pub colors: Option<ColorOptions>,
-    pub chars: CharOptions,
-}
-#[derive(Clone, Debug, Default)]
-pub struct ColorOptions {
-    pub headers: AnsiiColor,
-    pub lines: AnsiiColor,
-}
-#[derive(Clone, Debug, Default)]
 pub enum AnsiiColor {
     #[default]
     None,
@@ -35,9 +25,21 @@ impl Display for AnsiiColor {
         write!(f, "\u{001b}[{ansii_code}m")
     }
 }
+
+#[derive(Clone, Debug, Default)]
+pub struct ColorOptions {
+    pub headers: AnsiiColor,
+    pub lines: AnsiiColor,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct TablePrintOptions {
+    pub colors: Option<ColorOptions>,
+    pub chars: TableCharOptions,
+}
 #[derive(Clone, Debug)]
-pub struct CharOptions {
-    caps: Option<CapOptions>,
+pub struct TableCharOptions {
+    caps: Option<TableCapOptions>,
     v: char,
     h: char,
     vr: char,
@@ -45,7 +47,7 @@ pub struct CharOptions {
     hv: char,
 }
 #[derive(Clone, Debug)]
-struct CapOptions {
+struct TableCapOptions {
     dr: char,
     dl: char,
     ur: char,
@@ -53,10 +55,10 @@ struct CapOptions {
     hd: char,
     hu: char,
 }
-impl CharOptions {
+impl TableCharOptions {
     pub fn sharp() -> Self {
-        CharOptions {
-            caps: Some(CapOptions {
+        TableCharOptions {
+            caps: Some(TableCapOptions {
                 dr: '┌',
                 dl: '┐',
                 ur: '└',
@@ -72,8 +74,8 @@ impl CharOptions {
         }
     }
     pub fn rounded() -> Self {
-        CharOptions {
-            caps: Some(CapOptions {
+        TableCharOptions {
+            caps: Some(TableCapOptions {
                 dr: '╭',
                 dl: '╮',
                 ur: '╰',
@@ -89,7 +91,7 @@ impl CharOptions {
         }
     }
     pub fn ascii_markdown() -> Self {
-        CharOptions {
+        TableCharOptions {
             caps: None,
             v: '|',
             h: '-',
@@ -99,22 +101,19 @@ impl CharOptions {
         }
     }
 }
-impl Default for CharOptions {
+impl Default for TableCharOptions {
     fn default() -> Self {
         Self::ascii_markdown()
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct Table<K, V> {
     keys: Vec<K>,
     columns: Vec<Vec<V>>,
     options: TablePrintOptions,
 }
-impl<K, V> Table<K, V>
-where
-    K: Display,
-    V: Display,
-{
+impl<K, V> Table<K, V> {
     pub fn with_options(&mut self, options: TablePrintOptions) -> &mut Self {
         self.options = options;
         self
@@ -224,5 +223,72 @@ where
         }
 
         f.write_str(&c_reset)
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct ListPrintOptions {
+    pub colors: Option<ColorOptions>,
+}
+
+#[derive(Clone, Debug)]
+pub struct AlignedList<K, V> {
+    keys: Vec<K>,
+    vals: Vec<V>,
+    options: ListPrintOptions,
+}
+impl<K, V> AlignedList<K, V> {
+    pub fn with_options(&mut self, options: ListPrintOptions) -> &mut Self {
+        self.options = options;
+        self
+    }
+}
+impl<I, K, V> From<I> for AlignedList<K, V>
+where
+    I: IntoIterator<Item = (K, V)>,
+{
+    fn from(value: I) -> Self {
+        let (keys, vals) = value.into_iter().unzip();
+        AlignedList {
+            keys,
+            vals,
+            options: ListPrintOptions::default(),
+        }
+    }
+}
+impl<K, V> Display for AlignedList<K, V>
+where
+    K: Display,
+    V: Display,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let (col_l, col_k, col_r) = match &self.options.colors {
+            Some(co) => (
+                co.lines.to_string(),
+                co.headers.to_string(),
+                AnsiiColor::None.to_string(),
+            ),
+            None => (String::new(), String::new(), String::new()),
+        };
+        let filtered = self
+            .keys
+            .iter()
+            .zip(&self.vals)
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .filter(|(_, v)| !v.is_empty())
+            .collect::<Vec<_>>();
+        let keys_width = filtered
+            .iter()
+            .map(|(k, _)| k.chars().count())
+            .max()
+            .unwrap_or_default();
+        for (i, (k, v)) in filtered.into_iter().enumerate() {
+            let space = " ".repeat(keys_width - k.chars().count());
+            if i != 0 {
+                f.write_char('\n')?;
+            }
+            write!(f, "{col_l}-> {col_k}{k}{space} {col_l}: {col_r}{v}");
+        }
+        Ok(())
     }
 }
