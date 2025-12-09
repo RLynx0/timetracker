@@ -1,4 +1,10 @@
-use std::{fs, io::Write, path::PathBuf, rc::Rc, str::FromStr};
+use std::{
+    fs,
+    io::Write,
+    path::{Path, PathBuf},
+    rc::Rc,
+    str::FromStr,
+};
 
 use color_eyre::{
     Section,
@@ -43,10 +49,14 @@ pub fn set_activity(set_opts: &opt::SetActivity) -> Result<()> {
 }
 
 pub fn list_activities(opts: &opt::ListActivities) -> Result<()> {
-    let items = read_activity_hierarchy(opts.name.as_deref(), opts.expand)?
-        .into_iter()
-        .flat_map(flatten_activity_item)
-        .collect::<Vec<_>>();
+    let items = read_activity_hierarchy(
+        &files::get_activity_dir_path()?,
+        opts.name.as_deref(),
+        opts.expand,
+    )?
+    .into_iter()
+    .flat_map(flatten_activity_item)
+    .collect::<Vec<_>>();
 
     if opts.raw {
         for item in items {
@@ -90,38 +100,47 @@ fn print_activity_table(items: &[ActivityItem]) {
     };
 }
 
-fn read_activity_hierarchy(root_name: Option<&str>, recursive: bool) -> Result<Vec<ActivityItem>> {
-    let root = root_name.unwrap_or_default();
-    let mut path = files::get_activity_dir_path()?;
-    path.push(root);
+fn read_activity_hierarchy(
+    root: &Path,
+    context: Option<&str>,
+    recursive: bool,
+) -> Result<Vec<ActivityItem>> {
+    let mut path = PathBuf::from(root);
+    path.push(context.unwrap_or_default());
     if !path.exists() {
-        return Err(format_err!("{root} does not exist"));
+        return Err(format_err!("{path:?} does not exist"));
     }
     if !path.is_dir() {
         return Err(format_err!("{path:?} is not an activity category"));
     }
 
     let mut items = Vec::new();
-    for child in fs::read_dir(&path)? {
+    for child in fs::read_dir(path)? {
         let sub_path = child?.path();
         if sub_path.is_file() {
             let act_str = &fs::read_to_string(&sub_path)?;
             let activity = Activity::from_str(act_str)?;
             items.push(ActivityItem::Leaf(activity));
         } else {
-            let stripped = sub_path.strip_prefix(&path)?;
+            let stripped = sub_path.strip_prefix(root)?;
             let name: Rc<str> = stripped
                 .to_str()
                 .ok_or(format_err!("could not convert {stripped:?} to string"))?
                 .into();
             let children = if recursive {
-                read_activity_hierarchy(Some(&name), recursive)?
+                read_activity_hierarchy(root, Some(&name), recursive)?
             } else {
                 Vec::new()
             };
             items.push(ActivityItem::Category(ActivityCategory { name, children }));
         }
     }
+
+    items.sort_unstable_by(|a, b| match (a, b) {
+        (ActivityItem::Leaf(_), ActivityItem::Category(_)) => std::cmp::Ordering::Greater,
+        (ActivityItem::Category(_), ActivityItem::Leaf(_)) => std::cmp::Ordering::Less,
+        (a, b) => a.name().cmp(b.name()),
+    });
 
     Ok(items)
 }

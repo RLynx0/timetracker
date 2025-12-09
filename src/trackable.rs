@@ -94,6 +94,14 @@ pub enum ActivityItem {
     Leaf(Activity),
     Category(ActivityCategory),
 }
+impl ActivityItem {
+    pub fn name(&self) -> &str {
+        match self {
+            ActivityItem::Leaf(activity) => activity.name(),
+            ActivityItem::Category(category) => &category.name,
+        }
+    }
+}
 impl Display for ActivityItem {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
