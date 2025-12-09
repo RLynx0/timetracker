@@ -5,11 +5,20 @@ use color_eyre::{
     eyre::{Result, format_err},
 };
 
-use crate::{files, opt, trackable::Activity};
+use crate::{
+    files, opt,
+    trackable::{Activity, BUILTIN_ACTIVITY_IDLE_NAME},
+};
 
 pub fn set_activity(set_opts: &opt::SetActivity) -> Result<()> {
+    let name = set_opts.name.trim();
+    if name == BUILTIN_ACTIVITY_IDLE_NAME {
+        return Err(format_err!(
+            "{BUILTIN_ACTIVITY_IDLE_NAME} is a builtin activity and can't be overwritten"
+        ));
+    }
     let mut path = files::get_activity_dir_path()?;
-    path.push(&set_opts.name);
+    path.push(name);
     if path.is_dir() {
         return Err(format_err!("{path:?} is an activity category"));
     }
@@ -20,11 +29,9 @@ pub fn set_activity(set_opts: &opt::SetActivity) -> Result<()> {
     if let Some(p) = path.parent() {
         fs::create_dir_all(p)?;
     }
-    let activity = Activity::new(
-        &set_opts.name,
-        &set_opts.wbs,
-        set_opts.description.as_deref(),
-    );
+    let wbs = &set_opts.wbs;
+    let description = set_opts.description.as_deref();
+    let activity = Activity::new(name, wbs, description);
     let mut file = fs::OpenOptions::new()
         .create(true)
         .truncate(true)
