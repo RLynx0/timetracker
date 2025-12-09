@@ -114,9 +114,11 @@ fn read_activity_hierarchy(root_name: Option<&str>, recursive: bool) -> Result<V
                 .to_str()
                 .ok_or(format_err!("could not convert {stripped:?} to string"))?
                 .into();
-            let children = recursive
-                .then_some(read_activity_hierarchy(Some(&name), recursive)?)
-                .unwrap_or_default();
+            let children = if recursive {
+                read_activity_hierarchy(Some(&name), recursive)?
+            } else {
+                Vec::new()
+            };
             items.push(ActivityItem::Category(ActivityCategory { name, children }));
         }
     }
