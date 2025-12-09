@@ -26,11 +26,12 @@ pub fn set_activity(set_opts: &opt::SetActivity) -> Result<()> {
         set_opts.description.as_deref(),
     );
     let mut file = fs::OpenOptions::new()
+        .create(true)
         .truncate(true)
         .write(true)
         .open(path)?;
     writeln!(file, "{activity}")?;
-    println!("Written {}", activity.name());
+    println!("Saved trackable '{}'", activity.name());
     Ok(())
 }
 
