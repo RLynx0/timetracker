@@ -11,9 +11,11 @@ use color_eyre::eyre::{Result, format_err};
 use rev_lines::RawRevLines;
 
 use crate::{
+    activity_commands::read_activity,
     activity_entry::{ActivityEntry, TrackedActivity},
     activity_range::ActivityRange,
-    files, get_config, opt, print_smart_list, print_smart_table, resolve_wbs,
+    files, get_config, opt, print_smart_list, print_smart_table,
+    trackable::{Activity, BUILTIN_ACTIVITY_IDLE_NAME},
 };
 
 const ANSII_RED: &str = "\u{001b}[31m";
@@ -23,8 +25,8 @@ const ANSII_RESET: &str = "\u{001b}[0m";
 pub fn start_activity(start_opts: &opt::Start) -> Result<()> {
     let config = &get_config()?;
     let activity_name: &str = &start_opts.activity;
-
-    let wbs = resolve_wbs(activity_name)?;
+    let activity = resolve_activity(activity_name)?;
+    let wbs = activity.wbs();
 
     let last_entry = get_last_entry()?;
     let last_attendance = last_entry.as_ref().and_then(|e| e.attendance_type());
@@ -37,10 +39,11 @@ pub fn start_activity(start_opts: &opt::Start) -> Result<()> {
     let description = start_opts
         .description
         .as_deref()
+        .or(activity.description())
         .map(sanitize_description)
         .unwrap_or_default();
 
-    let entry = ActivityEntry::new_start(activity_name, attendance, &wbs, &description);
+    let entry = ActivityEntry::new_start(activity_name, attendance, wbs, &description);
     write_entry(&entry)?;
 
     if let Some(ActivityEntry::Start(last_start)) = last_entry.as_ref() {
@@ -60,6 +63,14 @@ pub fn start_activity(start_opts: &opt::Start) -> Result<()> {
         }
     }
     Ok(())
+}
+
+fn resolve_activity(activity_name: &str) -> Result<Activity> {
+    if activity_name == BUILTIN_ACTIVITY_IDLE_NAME {
+        Ok(Activity::builtin_idle())
+    } else {
+        read_activity(activity_name)
+    }
 }
 
 fn sanitize_description(description: &str) -> String {

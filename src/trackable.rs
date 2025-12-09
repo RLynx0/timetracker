@@ -1,5 +1,24 @@
-use std::{fmt::Display, rc::Rc};
+use std::{error, fmt::Display, rc::Rc, str::FromStr};
 
+pub const BUILTIN_ACTIVITY_IDLE_NAME: &str = "Idle";
+pub const BUILTIN_ACTIVITY_IDLE_WBS: &str = "Idle";
+
+#[derive(Debug, Clone)]
+pub enum ParseActivityErr {
+    MissingName,
+    MissingWbs,
+}
+impl error::Error for ParseActivityErr {}
+impl Display for ParseActivityErr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ParseActivityErr::MissingName => write!(f, "missing name"),
+            ParseActivityErr::MissingWbs => write!(f, "missing wbs"),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Activity {
     name: Rc<str>,
     wbs: Rc<str>,
@@ -11,6 +30,14 @@ impl Activity {
             name: Rc::from(name),
             wbs: Rc::from(wbs),
             default_description: description.map(Rc::from),
+        }
+    }
+
+    pub fn builtin_idle() -> Self {
+        Activity {
+            name: Rc::from(BUILTIN_ACTIVITY_IDLE_NAME),
+            wbs: Rc::from(BUILTIN_ACTIVITY_IDLE_WBS),
+            default_description: None,
         }
     }
 
@@ -36,5 +63,22 @@ impl Display for Activity {
                 None => "",
             }
         )
+    }
+}
+impl FromStr for Activity {
+    type Err = ParseActivityErr;
+    fn from_str(input: &str) -> Result<Self, Self::Err> {
+        let mut fields = input.split("\t");
+        let name = fields.next().ok_or(ParseActivityErr::MissingName)?;
+        let wbs = fields.next().ok_or(ParseActivityErr::MissingWbs)?;
+        let default_description = match fields.next() {
+            Some("") => None,
+            opt => opt.map(Rc::from),
+        };
+        Ok(Activity {
+            name: Rc::from(name),
+            wbs: Rc::from(wbs),
+            default_description,
+        })
     }
 }

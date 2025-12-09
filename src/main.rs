@@ -3,8 +3,6 @@
 use std::{
     fs,
     io::{Write, stdin, stdout},
-    process::exit,
-    rc::Rc,
 };
 
 use clap::Parser;
@@ -23,9 +21,6 @@ mod generate;
 mod opt;
 mod printable;
 mod trackable;
-
-const IDLE_WBS_SENTINEL: &str = "Idle";
-const BUILTIN_ACTIVITY_IDLE: &str = "Idle";
 
 fn main() -> Result<()> {
     color_eyre::install()?;
@@ -59,16 +54,6 @@ fn handle_activity_command(activity_command: &opt::ActivityCommand) -> Result<()
         opt::ActivityCommand::Rm(_) => todo!(),
         opt::ActivityCommand::Ls(_) => todo!(),
     }
-}
-
-fn resolve_wbs(activity_name: &str) -> Result<Rc<str>> {
-    if activity_name == BUILTIN_ACTIVITY_IDLE {
-        return Ok(IDLE_WBS_SENTINEL.into());
-    }
-
-    Err(color_eyre::eyre::format_err!(
-        "Activity {activity_name} does not exist."
-    ))
 }
 
 fn get_config() -> Result<Config> {

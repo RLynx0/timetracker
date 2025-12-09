@@ -1,6 +1,6 @@
 pub use clap::{Parser, Subcommand};
 
-use crate::{BUILTIN_ACTIVITY_IDLE, activity_range::ActivityRange};
+use crate::{activity_range::ActivityRange, trackable::BUILTIN_ACTIVITY_IDLE_NAME};
 
 #[derive(Debug, Clone, Parser)]
 #[command(author, version, about, long_about = None)]
@@ -42,7 +42,7 @@ pub enum ActivityCommand {
 #[derive(Debug, Clone, Parser)]
 pub struct Start {
     /// Start tracking time for this activity
-    #[clap(default_value = BUILTIN_ACTIVITY_IDLE)]
+    #[clap(default_value = BUILTIN_ACTIVITY_IDLE_NAME)]
     pub activity: String,
 
     /// Set the attendance type of this entry

@@ -6,13 +6,13 @@ use std::{
 #[macro_export]
 macro_rules! print_smart_list {
     ($($k:expr => $v: expr,)*) => {
-        println!("{}", crate::printable::AlignedList::from([
+        println!("{}", $crate::printable::AlignedList::from([
             $(($k, $v)),*
-        ]).with_options(crate::printable::ListPrintOptions {
+        ]).with_options($crate::printable::ListPrintOptions {
             colors: std::io::IsTerminal::is_terminal(&std::io::stdout()).then_some(
-                crate::printable::ColorOptions {
-                    headers: crate::printable::AnsiiColor::Blue,
-                    lines: crate::printable::AnsiiColor::None,
+                $crate::printable::ColorOptions {
+                    headers: $crate::printable::AnsiiColor::Blue,
+                    lines: $crate::printable::AnsiiColor::None,
                 }
             ),
             ..Default::default()
@@ -23,14 +23,14 @@ macro_rules! print_smart_list {
 #[macro_export]
 macro_rules! print_smart_table {
     ($($k:expr => $vs: expr,)*) => {
-        println!("{}", crate::printable::Table::from([
+        println!("{}", $crate::printable::Table::from([
             $(($k, $vs)),*
-        ]).with_options(crate::printable::TablePrintOptions {
-            chars: crate::printable::TableCharOptions::rounded(),
+        ]).with_options($crate::printable::TablePrintOptions {
+            chars: $crate::printable::TableCharOptions::rounded(),
             colors: std::io::IsTerminal::is_terminal(&std::io::stdout()).then_some(
-                crate::printable::ColorOptions {
-                    headers: crate::printable::AnsiiColor::Blue,
-                    lines: crate::printable::AnsiiColor::None,
+                $crate::printable::ColorOptions {
+                    headers: $crate::printable::AnsiiColor::Blue,
+                    lines: $crate::printable::AnsiiColor::None,
                 }
             ),
         }));
