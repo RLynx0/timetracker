@@ -1,7 +1,7 @@
-use std::fmt::Display;
+use std::fmt::{Display, Write};
 
 #[derive(Clone, Debug, Default)]
-pub struct PrintOptions {
+pub struct TablePrintOptions {
     pub colors: Option<ColorOptions>,
     pub chars: CharOptions,
 }
@@ -108,96 +108,18 @@ impl Default for CharOptions {
 pub struct Table<K, V> {
     keys: Vec<K>,
     columns: Vec<Vec<V>>,
+    options: TablePrintOptions,
 }
 impl<K, V> Table<K, V>
 where
     K: Display,
     V: Display,
 {
-    pub fn to_string_with_options(&self, print_options: &PrintOptions) -> String {
-        let copt = &print_options.chars;
-        let mut out = String::new();
-        let mut widths = Vec::new();
-        for (i, k) in self.keys.iter().enumerate() {
-            let width = self.columns[i]
-                .iter()
-                .map(|s| s.to_string().chars().count())
-                .chain(Some(k.to_string().chars().count()))
-                .max()
-                .unwrap_or_default();
-            widths.push(width);
-        }
-
-        let (c_header, c_line, c_reset) = match &print_options.colors {
-            Some(c) => (
-                c.headers.to_string(),
-                c.lines.to_string(),
-                AnsiiColor::None.to_string(),
-            ),
-            None => (String::new(), String::new(), String::new()),
-        };
-
-        // Conditionally print top table cap
-        out.push_str(&c_line);
-        if let Some(co) = &copt.caps {
-            for (i, w) in widths.iter().enumerate() {
-                out.push(if i == 0 { co.dr } else { co.hd });
-                out.push_str(&copt.h.to_string().repeat(*w + 2));
-            }
-            out.push(co.dl);
-            out.push('\n');
-        }
-
-        // Print table headers
-        out.push(copt.v);
-        for (k, w) in self.keys.iter().zip(&widths) {
-            let k = k.to_string();
-            let space = " ".repeat(w - k.chars().count());
-            out.push_str(&format!(" {c_header}{k}{space} {c_line}{}", copt.v));
-        }
-        out.push('\n');
-
-        // Print header separator
-        for (i, w) in widths.iter().enumerate() {
-            out.push(if i == 0 { copt.vr } else { copt.hv });
-            out.push_str(&copt.h.to_string().repeat(*w + 2));
-        }
-        out.push(copt.vl);
-        out.push_str(&c_reset);
-
-        // Print table rows
-        let complete_rows = self
-            .columns
-            .iter()
-            .map(|vs| vs.len())
-            .max()
-            .unwrap_or_default();
-        for r in 0..complete_rows {
-            out.push('\n');
-            out.push_str(&c_line);
-            out.push(copt.v);
-            for (i, width) in widths.iter().enumerate() {
-                let v = self.columns[i][r].to_string();
-                let space = " ".repeat(width - v.chars().count());
-                out.push_str(&format!(" {c_reset}{v}{space} {c_line}{}", copt.v));
-            }
-        }
-
-        // Conditionally print bottom table cap
-        if let Some(co) = &copt.caps {
-            out.push('\n');
-            for (i, w) in widths.iter().enumerate() {
-                out.push(if i == 0 { co.ur } else { co.hu });
-                out.push_str(&copt.h.to_string().repeat(*w + 2));
-            }
-            out.push(co.ul);
-        }
-
-        out.push_str(&c_reset);
-        out
+    pub fn with_options(&mut self, options: TablePrintOptions) -> &mut Self {
+        self.options = options;
+        self
     }
 }
-
 impl<I, K, Vs, V> From<I> for Table<K, V>
 where
     K: Clone,
@@ -211,17 +133,96 @@ where
             keys.push(k.clone());
             columns.push(vs.into_iter().collect());
         }
-        Table { keys, columns }
+        Table {
+            keys,
+            columns,
+            options: TablePrintOptions::default(),
+        }
     }
 }
-
 impl<K, V> Display for Table<K, V>
 where
     K: Display,
     V: Display,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let opts = PrintOptions::default();
-        write!(f, "{}", self.to_string_with_options(&opts))
+        let copt = &self.options.chars;
+        let mut widths = Vec::new();
+        for (i, k) in self.keys.iter().enumerate() {
+            let width = self.columns[i]
+                .iter()
+                .map(|s| s.to_string().chars().count())
+                .chain(Some(k.to_string().chars().count()))
+                .max()
+                .unwrap_or_default();
+            widths.push(width);
+        }
+
+        let (c_header, c_line, c_reset) = match &self.options.colors {
+            Some(c) => (
+                c.headers.to_string(),
+                c.lines.to_string(),
+                AnsiiColor::None.to_string(),
+            ),
+            None => (String::new(), String::new(), String::new()),
+        };
+
+        // Conditionally print top table cap
+        f.write_str(&c_line)?;
+        if let Some(co) = &copt.caps {
+            for (i, w) in widths.iter().enumerate() {
+                f.write_char(if i == 0 { co.dr } else { co.hd })?;
+                f.write_str(&copt.h.to_string().repeat(*w + 2))?;
+            }
+            f.write_char(co.dl)?;
+            f.write_char('\n')?;
+        }
+
+        // Print table headers
+        f.write_char(copt.v)?;
+        for (k, w) in self.keys.iter().zip(&widths) {
+            let k = k.to_string();
+            let space = " ".repeat(w - k.chars().count());
+            write!(f, " {c_header}{k}{space} {c_line}{}", copt.v)?;
+        }
+        f.write_char('\n')?;
+
+        // Print header separator
+        for (i, w) in widths.iter().enumerate() {
+            f.write_char(if i == 0 { copt.vr } else { copt.hv })?;
+            f.write_str(&copt.h.to_string().repeat(*w + 2))?;
+        }
+        f.write_char(copt.vl)?;
+        f.write_str(&c_reset)?;
+
+        // Print table rows
+        let complete_rows = self
+            .columns
+            .iter()
+            .map(|vs| vs.len())
+            .max()
+            .unwrap_or_default();
+        for r in 0..complete_rows {
+            f.write_char('\n')?;
+            f.write_str(&c_line)?;
+            f.write_char(copt.v)?;
+            for (i, width) in widths.iter().enumerate() {
+                let v = self.columns[i][r].to_string();
+                let space = " ".repeat(width - v.chars().count());
+                write!(f, " {c_reset}{v}{space} {c_line}{}", copt.v)?;
+            }
+        }
+
+        // Conditionally print bottom table cap
+        if let Some(co) = &copt.caps {
+            f.write_char('\n')?;
+            for (i, w) in widths.iter().enumerate() {
+                f.write_char(if i == 0 { co.ur } else { co.hu })?;
+                f.write_str(&copt.h.to_string().repeat(*w + 2))?;
+            }
+            f.write_char(co.ul)?;
+        }
+
+        f.write_str(&c_reset)
     }
 }

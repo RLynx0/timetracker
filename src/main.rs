@@ -20,7 +20,7 @@ use crate::{
     config::Config,
     files::get_entry_file_path,
     opt::Opt,
-    table::{ColorOptions, Table},
+    printable::{AnsiiColor, ColorOptions, Table, TablePrintOptions},
 };
 
 mod activity;
@@ -29,7 +29,7 @@ mod config;
 mod files;
 mod format_string;
 mod opt;
-mod table;
+mod printable;
 
 const IDLE_WBS_SENTINEL: &str = "Idle";
 const BUILTIN_ACTIVITY_IDLE: &str = "Idle";
@@ -284,28 +284,26 @@ fn print_activitiy_table(activities: impl IntoIterator<Item = Activity>) {
         });
     }
 
-    let table = Table::from([
-        ("Date", col_date),
-        ("Start", col_start),
-        ("End", col_end),
-        ("Hours", col_hours),
-        ("Activity", col_name),
-        ("Attendance", col_attendance),
-        ("WBS", col_wbs),
-        ("Description", col_description),
-    ]);
-
-    let print_options = {
-        &table::PrintOptions {
-            chars: table::CharOptions::rounded(),
+    println!(
+        "{}",
+        Table::from([
+            ("Date", col_date),
+            ("Start", col_start),
+            ("End", col_end),
+            ("Hours", col_hours),
+            ("Activity", col_name),
+            ("Attendance", col_attendance),
+            ("WBS", col_wbs),
+            ("Description", col_description),
+        ])
+        .with_options(TablePrintOptions {
+            chars: printable::CharOptions::rounded(),
             colors: io::stdout().is_terminal().then_some(ColorOptions {
-                headers: table::AnsiiColor::Blue,
-                lines: table::AnsiiColor::None,
+                headers: AnsiiColor::Blue,
+                lines: AnsiiColor::None,
             }),
-        }
-    };
-
-    println!("{}", table.to_string_with_options(print_options));
+        })
+    );
 }
 
 fn open_entry_file(opts: &opt::Edit) -> Result<()> {
