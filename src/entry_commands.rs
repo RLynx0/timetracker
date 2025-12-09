@@ -14,6 +14,7 @@ use color_eyre::{
 use rev_lines::RawRevLines;
 
 use crate::{
+    NONE_PRINT_VALUE,
     activity_commands::read_activity,
     activity_entry::{ActivityEntry, TrackedActivity},
     activity_range::ActivityRange,
@@ -232,7 +233,7 @@ fn print_activitiy_table(activities: impl IntoIterator<Item = TrackedActivity>) 
     let mut col_attendance: Vec<Rc<str>> = Vec::new();
     let mut col_wbs: Vec<Rc<str>> = Vec::new();
     let mut col_description: Vec<Rc<str>> = Vec::new();
-    let none_value: Rc<str> = "--".into();
+    let none_value: Rc<str> = Rc::from(NONE_PRINT_VALUE);
 
     for activity in activities {
         let start = activity.start_time();

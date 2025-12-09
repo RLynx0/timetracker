@@ -1,4 +1,4 @@
-use std::{fs, io::Write, str::FromStr};
+use std::{fs, io::Write, rc::Rc, str::FromStr};
 
 use color_eyre::{
     Section,
@@ -6,7 +6,7 @@ use color_eyre::{
 };
 
 use crate::{
-    files, opt,
+    NONE_PRINT_VALUE, files, opt, print_smart_table,
     trackable::{Activity, BUILTIN_ACTIVITY_IDLE_NAME},
 };
 
@@ -43,7 +43,42 @@ pub fn set_activity(set_opts: &opt::SetActivity) -> Result<()> {
 }
 
 pub fn list_activities(opts: &opt::ListActivities) -> Result<()> {
-    todo!("read and list activities")
+    let path = files::get_activity_dir_path()?;
+    let mut col_name: Vec<Rc<str>> = Vec::new();
+    let mut col_wbs: Vec<Rc<str>> = Vec::new();
+    let mut col_description: Vec<Rc<str>> = Vec::new();
+    let none_value: Rc<str> = Rc::from(NONE_PRINT_VALUE);
+    for child in fs::read_dir(path)? {
+        let sub_path = child?.path();
+        if sub_path.is_file() {
+            let act_str = &fs::read_to_string(&sub_path)?;
+            let activity = Activity::from_str(act_str)?;
+            let description = match activity.description() {
+                Some(descr) => Rc::from(descr),
+                None => none_value.clone(),
+            };
+            col_name.push(activity.name().into());
+            col_wbs.push(activity.wbs().into());
+            col_description.push(description);
+        } else {
+            let name = sub_path
+                .file_name()
+                .ok_or(format_err!("could not read {sub_path:?} as category"))?
+                .to_str()
+                .ok_or(format_err!("Failed to convert os string"))?;
+            col_name.push(format!("{name}/").into());
+            col_wbs.push(none_value.clone());
+            col_description.push(none_value.clone());
+        }
+    }
+
+    print_smart_table! {
+        "Name" => col_name,
+        "WBS" => col_wbs,
+        "Description" => col_description,
+    };
+
+    Ok(())
 }
 
 pub fn read_activity(name: &str) -> Result<Activity> {

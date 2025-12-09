@@ -22,6 +22,8 @@ mod opt;
 mod printable;
 mod trackable;
 
+const NONE_PRINT_VALUE: &str = "--";
+
 fn main() -> Result<()> {
     color_eyre::install()?;
     let opt = Opt::parse();
