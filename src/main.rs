@@ -91,7 +91,7 @@ fn get_config() -> Result<Config> {
 }
 
 fn make_guided_config() -> Result<Config> {
-    let default = toml::from_str::<Config>(include_str!("./default_config.toml"))
+    let default = toml::from_str::<Config>(include_str!("../assets/default_config.toml"))
         .expect("Default config must be valid");
 
     let employee_name = get_input_string("Your Name")?;
