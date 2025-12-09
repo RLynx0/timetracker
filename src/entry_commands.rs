@@ -61,9 +61,13 @@ pub fn start_activity(start_opts: &opt::Start) -> Result<()> {
 
     let timestamp = entry.time_stamp();
     if start_opts.verbose {
+        let attendance_str = match config.attendance_types.get(attendance) {
+            Some(hint) if !hint.trim().is_empty() => format!("{attendance} ({hint})"),
+            _ => attendance.to_string(),
+        };
         print_smart_list! {
             "Description" => description,
-            "Attendance" => attendance.to_owned(),
+            "Attendance" => attendance_str,
             "WBS" => wbs.to_string(),
             "Date" => timestamp.format("%Y-%m-%d").to_string(),
             "Time" => timestamp.format("%H:%M:%S").to_string(),
@@ -156,10 +160,16 @@ fn show_current_entry(show_opts: &opt::Show) -> Result<()> {
                 entry.name()
             );
 
+            let config = get_config()?;
             let delta = Local::now() - entry.time_stamp();
+            let attendance = entry.attendance();
+            let attendance_str = match config.attendance_types.get(attendance) {
+                Some(hint) if !hint.trim().is_empty() => format!("{attendance} ({hint})"),
+                _ => attendance.to_string(),
+            };
             print_smart_list! {
                 "Description" => entry.description(),
-                "Attendance" => entry.attendance(),
+                "Attendance" => &attendance_str,
                 "WBS" => entry.wbs(),
                 "Tracked for" => &format_time_delta(&delta),
             }
