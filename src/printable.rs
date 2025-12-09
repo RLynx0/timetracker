@@ -3,6 +3,40 @@ use std::{
     rc::Rc,
 };
 
+#[macro_export]
+macro_rules! print_smart_list {
+    ($($k:expr => $v: expr,)*) => {
+        println!("{}", crate::printable::AlignedList::from([
+            $(($k, $v)),*
+        ]).with_options(crate::printable::ListPrintOptions {
+            colors: std::io::IsTerminal::is_terminal(&std::io::stdout()).then_some(
+                crate::printable::ColorOptions {
+                    headers: crate::printable::AnsiiColor::Blue,
+                    lines: crate::printable::AnsiiColor::None,
+                }
+            ),
+            ..Default::default()
+        }));
+    }
+}
+
+#[macro_export]
+macro_rules! print_smart_table {
+    ($($k:expr => $vs: expr,)*) => {
+        println!("{}", crate::printable::Table::from([
+            $(($k, $vs)),*
+        ]).with_options(crate::printable::TablePrintOptions {
+            chars: crate::printable::TableCharOptions::rounded(),
+            colors: std::io::IsTerminal::is_terminal(&std::io::stdout()).then_some(
+                crate::printable::ColorOptions {
+                    headers: crate::printable::AnsiiColor::Blue,
+                    lines: crate::printable::AnsiiColor::None,
+                }
+            ),
+        }));
+    };
+}
+
 #[derive(Clone, Debug, Default)]
 pub enum AnsiiColor {
     #[default]

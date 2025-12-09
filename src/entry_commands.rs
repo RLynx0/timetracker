@@ -13,44 +13,12 @@ use rev_lines::RawRevLines;
 use crate::{
     activity_entry::{ActivityEntry, TrackedActivity},
     activity_range::ActivityRange,
-    files, get_config, opt, resolve_wbs,
+    files, get_config, opt, print_smart_list, print_smart_table, resolve_wbs,
 };
 
 const ANSII_RED: &str = "\u{001b}[31m";
 const ANSII_GREEN: &str = "\u{001b}[32m";
 const ANSII_RESET: &str = "\u{001b}[0m";
-
-macro_rules! print_list {
-    ($($k:expr => $v: expr,)*) => {
-        println!("{}", crate::printable::AlignedList::from([
-            $(($k, $v)),*
-        ]).with_options(crate::printable::ListPrintOptions {
-            colors: std::io::IsTerminal::is_terminal(&std::io::stdout()).then_some(
-                crate::printable::ColorOptions {
-                    headers: crate::printable::AnsiiColor::Blue,
-                    lines: crate::printable::AnsiiColor::None,
-                }
-            ),
-            ..Default::default()
-        }));
-    }
-}
-
-macro_rules! print_table {
-    ($($k:expr => $vs: expr,)*) => {
-        println!("{}", crate::printable::Table::from([
-            $(($k, $vs)),*
-        ]).with_options(crate::printable::TablePrintOptions {
-            chars: crate::printable::TableCharOptions::rounded(),
-            colors: std::io::IsTerminal::is_terminal(&std::io::stdout()).then_some(
-                crate::printable::ColorOptions {
-                    headers: crate::printable::AnsiiColor::Blue,
-                    lines: crate::printable::AnsiiColor::None,
-                }
-            ),
-        }));
-    };
-}
 
 pub fn start_activity(start_opts: &opt::Start) -> Result<()> {
     let config = &get_config()?;
@@ -83,7 +51,7 @@ pub fn start_activity(start_opts: &opt::Start) -> Result<()> {
 
     let timestamp = entry.time_stamp();
     if start_opts.verbose {
-        print_list! {
+        print_smart_list! {
             "Description" => description,
             "Attendance" => attendance.to_owned(),
             "WBS" => wbs.to_string(),
@@ -109,7 +77,7 @@ pub fn end_activity(end_opts: &opt::End) -> Result<()> {
             println!("Stopped tracking {ANSII_RED}'{stopped}'{ANSII_RESET}");
             let timestamp = entry.time_stamp();
             if end_opts.verbose {
-                print_list! {
+                print_smart_list! {
                     "Date" => timestamp.format("%Y-%m-%d"),
                     "Time" => timestamp.format("%H-%M-%S"),
                 }
@@ -171,7 +139,7 @@ fn show_current_entry(show_opts: &opt::Show) -> Result<()> {
             );
 
             let delta = Local::now() - entry.time_stamp();
-            print_list! {
+            print_smart_list! {
                 "Description" => entry.description(),
                 "Attendance" => entry.attendance(),
                 "WBS" => entry.wbs(),
@@ -259,7 +227,7 @@ fn print_activitiy_table(activities: impl IntoIterator<Item = TrackedActivity>) 
         });
     }
 
-    print_table! {
+    print_smart_table! {
         "Date" => col_date,
         "Start" => col_start,
         "End" => col_end,

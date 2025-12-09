@@ -8,7 +8,7 @@ use std::{
 };
 
 use clap::Parser;
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{Context, Result};
 
 use crate::{config::Config, opt::Opt};
 
@@ -27,20 +27,26 @@ mod trackable;
 const IDLE_WBS_SENTINEL: &str = "Idle";
 const BUILTIN_ACTIVITY_IDLE: &str = "Idle";
 
-fn main() {
+fn main() -> Result<()> {
+    color_eyre::install()?;
     let opt = Opt::parse();
-    if let Err(err) = handle_ttr_command(&opt) {
-        eprintln!("{err}");
-        exit(1)
-    }
+    handle_ttr_command(&opt)
 }
 
 fn handle_ttr_command(opt: &Opt) -> Result<()> {
     match &opt.command {
-        opt::TtrCommand::Start(opts) => entry_commands::start_activity(opts),
-        opt::TtrCommand::End(opts) => entry_commands::end_activity(opts),
-        opt::TtrCommand::Show(opts) => entry_commands::show_activities(opts),
-        opt::TtrCommand::Edit(_) => entry_commands::open_entry_file(),
+        opt::TtrCommand::Start(opts) => {
+            entry_commands::start_activity(opts).wrap_err("failed to start tracking")
+        }
+        opt::TtrCommand::End(opts) => {
+            entry_commands::end_activity(opts).wrap_err("failed to end tracking")
+        }
+        opt::TtrCommand::Show(opts) => {
+            entry_commands::show_activities(opts).wrap_err("failed to show activitiy")
+        }
+        opt::TtrCommand::Edit(_) => {
+            entry_commands::open_entry_file().wrap_err("failed to open entry file")
+        }
         opt::TtrCommand::Generate(_) => todo!(),
         opt::TtrCommand::Activity(opts) => handle_activity_command(opts),
     }
@@ -48,7 +54,8 @@ fn handle_ttr_command(opt: &Opt) -> Result<()> {
 
 fn handle_activity_command(activity_command: &opt::ActivityCommand) -> Result<()> {
     match activity_command {
-        opt::ActivityCommand::Set(opts) => activity_commands::set_activity(opts),
+        opt::ActivityCommand::Set(opts) => activity_commands::set_activity(opts)
+            .wrap_err_with(|| format!("failed to set activity '{}'", opts.name)),
         opt::ActivityCommand::Rm(_) => todo!(),
         opt::ActivityCommand::Ls(_) => todo!(),
     }

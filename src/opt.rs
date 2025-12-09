@@ -110,7 +110,7 @@ pub struct Generate {
     file_path: Option<String>,
 }
 
-/// Define a new trackable activity or update an existing one
+/// Define a new trackable activity
 #[derive(Debug, Clone, Parser)]
 pub struct SetActivity {
     /// The name of the trackable activity
@@ -122,6 +122,10 @@ pub struct SetActivity {
     /// The default description for this activity
     #[clap(short, long)]
     pub description: Option<String>,
+
+    /// Allow overwriting existing activities
+    #[clap(short, long)]
+    pub force: bool,
 }
 
 /// Remove a specified trackable activity
