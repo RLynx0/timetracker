@@ -43,8 +43,10 @@ fn handle_ttr_command(opt: &Opt) -> Result<()> {
             entry_commands::open_entry_file().wrap_err("failed to open entry file")
         }
         opt::TtrCommand::Generate(_) => todo!(),
-        opt::TtrCommand::ListAttendanceTypes => list_attendance_types(),
         opt::TtrCommand::Activity(opts) => handle_activity_command(opts),
+
+        // Additional convenience commands
+        opt::TtrCommand::ListAttendanceTypes(opts) => list_attendance_types(opts),
     }
 }
 
@@ -62,11 +64,17 @@ fn handle_activity_command(activity_command: &opt::ActivityCommand) -> Result<()
     }
 }
 
-fn list_attendance_types() -> Result<()> {
+fn list_attendance_types(list_opts: &opt::ListAttendanceTypes) -> Result<()> {
     let config = get_config()?;
     let mut list = config.attendance_types.into_iter().collect::<Vec<_>>();
     list.sort_by(|(_, va), (_, vb)| va.cmp(vb));
-    print_smart_list!(list);
+    if list_opts.raw {
+        for (number, hint) in list {
+            println!("{number}\t{hint}")
+        }
+    } else {
+        print_smart_list!(list);
+    }
     Ok(())
 }
 

@@ -10,11 +10,8 @@ function __timetrack_subcommands
     '
 end
 function __timetrack_attendance_types
-    timetrack list-attendance-types | awk -F ' *: *' '
-    /^->/ {
-        gsub(/^->\s*/, "", $1)
-        print $1 "\t\'" $2 "\'"
-    }'
+    timetrack list-attendance-types -r \
+        | awk -F "\t" '{ print $1 "\t\'" $2 "\'" }'
 end
 function __timetrack_activities
     timetrack activity list

@@ -25,9 +25,8 @@ pub enum TtrCommand {
     #[command(subcommand)]
     Activity(ActivityCommand),
 
-    /// Print out configured attendance types
     #[command()]
-    ListAttendanceTypes,
+    ListAttendanceTypes(ListAttendanceTypes),
 }
 
 /// Edit or list trackable activities
@@ -92,7 +91,7 @@ pub struct Show {
     #[clap(verbatim_doc_comment, short, long, default_value = "0")]
     pub last: ActivityRange,
 
-    /// Print raw activity values instead of a table
+    /// Print machine readable values instead of a formatted table
     #[clap(short, long)]
     pub raw: bool,
 }
@@ -161,4 +160,12 @@ pub struct ListActivities {
     /// Show contents of activity categories
     #[clap(short, long)]
     pub recursive: bool,
+}
+
+/// Print out configured attendance types
+#[derive(Debug, Clone, Parser)]
+pub struct ListAttendanceTypes {
+    /// Print machine readable values instead of a formatted list
+    #[clap(short, long)]
+    pub raw: bool,
 }
