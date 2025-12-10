@@ -192,12 +192,12 @@ impl Display for ActivityLeaf {
     }
 }
 
-pub enum PrintableActivityItem {
-    CategoryName(Rc<str>),
-    ActivityLeaf(ActivityLeaf),
-    Activity(Activity),
+pub enum PrintableActivityItem<'a> {
+    CategoryName(&'a str),
+    ActivityLeaf(&'a ActivityLeaf),
+    Activity(&'a Activity),
 }
-impl PrintableActivityItem {
+impl PrintableActivityItem<'_> {
     pub fn display_name(&self) -> Rc<str> {
         match self {
             PrintableActivityItem::CategoryName(name) => format!("{name}/").into(),
@@ -220,7 +220,7 @@ impl PrintableActivityItem {
         }
     }
 }
-impl Display for PrintableActivityItem {
+impl Display for PrintableActivityItem<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             PrintableActivityItem::CategoryName(name) => write!(f, "{name}/\t\t"),

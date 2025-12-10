@@ -36,36 +36,39 @@ pub fn list_activities(opts: &opt::ListActivities) -> Result<()> {
 
     // TODO: Handle path
 
-    let printable: Vec<_> = if opts.expand {
-        hierarchy
-            .expand_activities_sorted()
-            .into_iter()
-            .map(PrintableActivityItem::Activity)
-            .collect()
+    if opts.expand {
+        let expanded = hierarchy.expand_activities_sorted();
+        let printable = expanded.iter().map(PrintableActivityItem::Activity);
+        print_activities(printable, opts.raw);
     } else {
-        let mut branch_names = Vec::from_iter(hierarchy.branches.into_keys());
-        let mut leafs = Vec::from_iter(hierarchy.leafs.into_values());
+        let mut branches = Vec::from_iter(hierarchy.branches.keys());
+        let mut leafs = Vec::from_iter(hierarchy.leafs.values());
         leafs.sort_unstable_by(|a, b| a.name().cmp(b.name()));
-        branch_names.sort_unstable();
-        branch_names
-            .into_iter()
-            .map(PrintableActivityItem::CategoryName)
-            .chain(leafs.into_iter().map(PrintableActivityItem::ActivityLeaf))
-            .collect()
+        branches.sort_unstable();
+        let printable = branches
+            .iter()
+            .map(|s| PrintableActivityItem::CategoryName(s))
+            .chain(leafs.iter().map(|s| PrintableActivityItem::ActivityLeaf(s)));
+        print_activities(printable, opts.raw);
     };
-
-    if opts.raw {
-        for activity in &printable {
+    Ok(())
+}
+fn print_activities<'a, I>(activities: I, print_raw: bool)
+where
+    I: IntoIterator<Item = PrintableActivityItem<'a>>,
+{
+    if print_raw {
+        for activity in activities {
             println!("{activity}");
         }
     } else {
-        print_activity_table(&printable);
+        print_activity_table(activities);
     }
-
-    Ok(())
 }
-
-fn print_activity_table(activities: &[PrintableActivityItem]) {
+fn print_activity_table<'a, I>(activities: I)
+where
+    I: IntoIterator<Item = PrintableActivityItem<'a>>,
+{
     let mut col_name: Vec<Rc<str>> = Vec::new();
     let mut col_wbs: Vec<Rc<str>> = Vec::new();
     let mut col_descr: Vec<Rc<str>> = Vec::new();
