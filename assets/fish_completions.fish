@@ -1,3 +1,14 @@
+function __timetrack_activity_subcommands
+    timetrack activity help | awk '
+        /^\w/ { c = 0 }
+        /^Commands:/ { c = 1; next }
+        !/^$/ && c {
+            com = $1
+            gsub(/^\s*\w+\s*/, "", $0)
+            printf "%s\t\'%s\'\n", com, $0
+        }
+    '
+end
 function __timetrack_subcommands
     timetrack help | awk '
         /^\w/ { c = 0 }
@@ -21,6 +32,11 @@ function __timetrack_activities
 end
 
 complete -c timetrack -f -a "(__timetrack_subcommands)"
+
+complete -c timetrack -f \
+    -n '__fish_seen_subcommand_from activity' \
+    -a"(__timetrack_activity_subcommands)"
+
 complete -c timetrack \
     -rfl attendance \
     -n '__fish_seen_subcommand_from start' \
@@ -29,10 +45,10 @@ complete -c timetrack \
     -rfs a \
     -n '__fish_seen_subcommand_from start' \
     -a "(__timetrack_attendance_types)"
-complete -c timetrack -rf \
+complete -c timetrack -f \
     -n '__fish_seen_subcommand_from start' \
     -a "(__timetrack_activities)"
-complete -c timetrack -rfl verbose \
+complete -c timetrack -fl verbose \
     -n '__fish_seen_subcommand_from start'
-complete -c timetrack -rfs v \
+complete -c timetrack -fs v \
     -n '__fish_seen_subcommand_from start'
