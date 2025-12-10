@@ -11,17 +11,17 @@ pub const BUILTIN_ACTIVITY_IDLE_WBS: &str = "Idle";
 
 #[derive(Debug, Clone)]
 pub enum ParseActivityErr {
-    NoPath,
-    NoName,
-    NoWbs,
+    MissingPath,
+    NoNameInPath,
+    MissingWbs,
 }
 impl error::Error for ParseActivityErr {}
 impl Display for ParseActivityErr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ParseActivityErr::NoPath => write!(f, "missing path"),
-            ParseActivityErr::NoWbs => write!(f, "missing wbs"),
-            ParseActivityErr::NoName => write!(f, "path doesn't end in a name"),
+            ParseActivityErr::MissingPath => write!(f, "missing path"),
+            ParseActivityErr::MissingWbs => write!(f, "missing wbs"),
+            ParseActivityErr::NoNameInPath => write!(f, "path doesn't end in a name"),
         }
     }
 }
@@ -78,20 +78,23 @@ impl FromStr for Activity {
     type Err = ParseActivityErr;
     fn from_str(input: &str) -> Result<Self, Self::Err> {
         let mut fields = input.split("\t");
-        let path = fields.next().ok_or(ParseActivityErr::NoPath)?;
-        let wbs = fields.next().map(Rc::from).ok_or(ParseActivityErr::NoWbs)?;
+        let path = fields.next().ok_or(ParseActivityErr::MissingPath)?;
+        let wbs = fields
+            .next()
+            .map(Rc::from)
+            .ok_or(ParseActivityErr::MissingWbs)?;
         let default_description = match fields.next() {
             None | Some("") => None,
             Some(d) => Some(Rc::from(d)),
         };
         let mut path: VecDeque<Rc<str>> = path.split("/").map(Rc::from).collect();
-        let name = path.pop_back().ok_or(ParseActivityErr::NoName)?;
+        let name = path.pop_back().ok_or(ParseActivityErr::NoNameInPath)?;
         if name.is_empty() {
-            return Err(ParseActivityErr::NoName);
+            return Err(ParseActivityErr::NoNameInPath);
         }
         let leaf = ActivityLeaf {
             name,
-            wbs: Rc::from(wbs),
+            wbs,
             default_description,
         };
 
@@ -105,9 +108,9 @@ pub struct ActivityCategory {
     pub leafs: HashMap<Rc<str>, ActivityLeaf>,
 }
 impl ActivityCategory {
-    pub fn as_activities(self) -> Vec<Activity> {
+    pub fn expand_activities(self) -> Vec<Activity> {
         let map_branch = |(name, category): (Rc<str>, ActivityCategory)| {
-            category.as_activities().into_iter().map(move |mut a| {
+            category.expand_activities().into_iter().map(move |mut a| {
                 a.path.push_front(name.clone());
                 a
             })
@@ -116,12 +119,15 @@ impl ActivityCategory {
         let leafs = self.leafs.into_values().map(Activity::from);
         branches.chain(leafs).collect()
     }
-    pub fn as_activities_sorted(self) -> Vec<Activity> {
+    pub fn expand_activities_sorted(self) -> Vec<Activity> {
         let map_branch = |(name, category): (Rc<str>, ActivityCategory)| {
-            category.as_activities().into_iter().map(move |mut a| {
-                a.path.push_front(name.clone());
-                a
-            })
+            category
+                .expand_activities_sorted()
+                .into_iter()
+                .map(move |mut a| {
+                    a.path.push_front(name.clone());
+                    a
+                })
         };
 
         let mut branches: Vec<_> = self.branches.into_iter().collect();

@@ -31,7 +31,7 @@ pub fn list_activities(opts: &opt::ListActivities) -> Result<()> {
 
     let printable: Vec<_> = if opts.expand {
         hierarchy
-            .as_activities_sorted()
+            .expand_activities_sorted()
             .into_iter()
             .map(PrintableActivityItem::Activity)
             .collect()
@@ -73,7 +73,7 @@ fn print_activity_table(activities: impl IntoIterator<Item = PrintableActivityIt
             Some(w) => Rc::from(w),
             None => none_value.clone(),
         };
-        col_name.push(activity.display_name().into());
+        col_name.push(activity.display_name());
         col_descr.push(description);
         col_wbs.push(wbs);
     }
