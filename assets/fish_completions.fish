@@ -14,7 +14,10 @@ function __timetrack_attendance_types
         | awk -F "\t" '{ print $1 "\t\'" $2 "\'" }'
 end
 function __timetrack_activities
-    timetrack activity list
+    timetrack activity ls -r | awk -F "\t" '
+        $2 { printf "%s\t\'%s\'\n", $1, $2; next }
+        { print $1 }
+    '
 end
 
 complete -c timetrack -f -a "(__timetrack_subcommands)"
@@ -26,6 +29,9 @@ complete -c timetrack \
     -rfs a \
     -n '__fish_seen_subcommand_from start' \
     -a "(__timetrack_attendance_types)"
+complete -c timetrack -rf \
+    -n '__fish_seen_subcommand_from start' \
+    -a "(__timetrack_activities)"
 complete -c timetrack -rfl verbose \
     -n '__fish_seen_subcommand_from start'
 complete -c timetrack -rfs v \
