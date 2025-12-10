@@ -200,7 +200,7 @@ pub enum PrintableActivityItem {
 impl PrintableActivityItem {
     pub fn display_name(&self) -> Rc<str> {
         match self {
-            PrintableActivityItem::CategoryName(name) => name.clone(),
+            PrintableActivityItem::CategoryName(name) => format!("{name}/").into(),
             PrintableActivityItem::ActivityLeaf(leaf) => leaf.name.clone(),
             PrintableActivityItem::Activity(activity) => Rc::from(activity.full_path()),
         }
