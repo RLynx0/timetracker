@@ -119,13 +119,14 @@ fn print_collapsed_activity_table(hierarchy: ActivityCategory) {
 
 fn get_all_trackable_activities() -> Result<Vec<Activity>> {
     let path = files::get_activity_file_path()?;
+    let builtin_idle = Activity::builtin_idle();
     if !fs::exists(&path)? {
-        return Ok(Vec::new());
+        return Ok(vec![builtin_idle]);
     }
     let mut activities = fs::read_to_string(path)?
         .lines()
         .map(Activity::from_str)
         .collect::<std::result::Result<Vec<_>, _>>()?;
-    activities.push(Activity::builtin_idle());
+    activities.push(builtin_idle);
     Ok(activities)
 }
