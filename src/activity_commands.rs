@@ -55,17 +55,17 @@ pub fn list_activities(opts: &opt::ListActivities) -> Result<()> {
     };
 
     if opts.raw {
-        for activity in printable {
+        for activity in &printable {
             println!("{activity}");
         }
     } else {
-        print_activity_table(printable);
+        print_activity_table(&printable);
     }
 
     Ok(())
 }
 
-fn print_activity_table(activities: impl IntoIterator<Item = PrintableActivityItem>) {
+fn print_activity_table(activities: &[PrintableActivityItem]) {
     let mut col_name: Vec<Rc<str>> = Vec::new();
     let mut col_wbs: Vec<Rc<str>> = Vec::new();
     let mut col_descr: Vec<Rc<str>> = Vec::new();
