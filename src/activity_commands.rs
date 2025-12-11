@@ -35,7 +35,7 @@ pub fn list_activities(opts: &cli::ListActivities) -> Result<()> {
     let search_path = opts
         .name
         .as_deref()
-        .map(|s| s.trim_matches('/').split("/").collect::<Vec<_>>())
+        .map(|s| s.split("/").filter(|s| !s.is_empty()).collect::<Vec<_>>())
         .unwrap_or_default();
     let activities = get_all_trackable_activities()?;
     let hierarchy = ActivityCategory::from(activities);
