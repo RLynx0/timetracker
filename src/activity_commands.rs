@@ -15,7 +15,8 @@ use color_eyre::{
 use crate::{
     NONE_PRINT_VALUE, cli, files, print_smart_table,
     trackable::{
-        Activity, ActivityCategory, ActivityLeaf, BUILTIN_ACTIVITY_IDLE_NAME, PrintableActivityItem,
+        Activity, ActivityCategory, ActivityItemRef, ActivityLeaf, BUILTIN_ACTIVITY_IDLE_NAME,
+        PrintableActivityItem,
     },
 };
 
@@ -31,15 +32,28 @@ pub fn remove_activity(set_opts: &cli::RemoveActivity) -> Result<()> {
 }
 
 pub fn list_activities(opts: &cli::ListActivities) -> Result<()> {
+    let search_path = opts
+        .name
+        .as_deref()
+        .map(|s| s.trim_matches('/').split("/").collect::<Vec<_>>())
+        .unwrap_or_default();
     let activities = get_all_trackable_activities()?;
     let hierarchy = ActivityCategory::from(activities);
+    match hierarchy.get_item_at(&search_path).unwrap() {
+        ActivityItemRef::Leaf(l) => {
+            return Err(format_err!("{} is not an activity category", l.name()))
+                .with_note(|| "Can only list contents of categories");
+        }
+        ActivityItemRef::Category(c) => print_hierarchy(c, opts.recursive, opts.machine_readable),
+    };
 
-    // TODO: Handle path
-
-    if opts.recursive {
-        let expanded = hierarchy.expand_activities_sorted();
+    Ok(())
+}
+fn print_hierarchy(hierarchy: &ActivityCategory, recursive: bool, machine_readable: bool) {
+    if recursive {
+        let expanded = hierarchy.to_activities_sorted();
         let printable = expanded.iter().map(PrintableActivityItem::Activity);
-        print_activities(printable, opts.machine_readable);
+        print_activities(printable, machine_readable);
     } else {
         let mut branches = Vec::from_iter(hierarchy.branches.keys());
         let mut leafs = Vec::from_iter(hierarchy.leafs.values());
@@ -49,9 +63,8 @@ pub fn list_activities(opts: &cli::ListActivities) -> Result<()> {
             .iter()
             .map(|s| PrintableActivityItem::CategoryName(s))
             .chain(leafs.iter().map(|s| PrintableActivityItem::ActivityLeaf(s)));
-        print_activities(printable, opts.machine_readable);
+        print_activities(printable, machine_readable);
     };
-    Ok(())
 }
 fn print_activities<'a, I>(activities: I, print_machine_readable: bool)
 where

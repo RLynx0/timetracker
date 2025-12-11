@@ -107,6 +107,7 @@ pub enum ActivityItemRef<'a> {
     Leaf(&'a ActivityLeaf),
     Category(&'a ActivityCategory),
 }
+#[derive(Debug, Clone)]
 pub enum LookupError<'a> {
     NotACategory(&'a [&'a str]),
     NoSuchItem {
@@ -121,21 +122,11 @@ pub struct ActivityCategory {
     pub leafs: HashMap<Rc<str>, ActivityLeaf>,
 }
 impl ActivityCategory {
-    pub fn expand_activities(self) -> Vec<Activity> {
-        let map_branch = |(name, category): (Rc<str>, ActivityCategory)| {
-            category.expand_activities().into_iter().map(move |mut a| {
-                a.path.push_front(name.clone());
-                a
-            })
-        };
-        let branches = self.branches.into_iter().flat_map(map_branch);
-        let leafs = self.leafs.into_values().map(Activity::from);
-        branches.chain(leafs).collect()
-    }
-    pub fn expand_activities_sorted(self) -> Vec<Activity> {
-        let map_branch = |(name, category): (Rc<str>, ActivityCategory)| {
+    pub fn to_activities_sorted(&self) -> Vec<Activity> {
+        let map_branch = |(name, category): &(&Rc<str>, &ActivityCategory)| {
+            let name = Rc::clone(name);
             category
-                .expand_activities_sorted()
+                .to_activities_sorted()
                 .into_iter()
                 .map(move |mut a| {
                     a.path.push_front(name.clone());
@@ -143,13 +134,13 @@ impl ActivityCategory {
                 })
         };
 
-        let mut branches: Vec<_> = self.branches.into_iter().collect();
+        let mut branches: Vec<_> = self.branches.iter().collect();
         branches.sort_by(|(a, _), (b, _)| a.cmp(b));
-        let branches = branches.into_iter().flat_map(map_branch);
+        let branches = branches.iter().flat_map(map_branch);
 
-        let mut leafs: Vec<_> = self.leafs.into_values().collect();
+        let mut leafs: Vec<_> = self.leafs.values().collect();
         leafs.sort_by(|a, b| a.name().cmp(b.name()));
-        let leafs = leafs.into_iter().map(Activity::from);
+        let leafs = leafs.iter().map(|&l| Activity::from(l.clone()));
 
         branches.chain(leafs).collect()
     }
