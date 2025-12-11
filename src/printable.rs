@@ -212,7 +212,7 @@ where
                 f.write_str(&copt.h.to_string().repeat(*w + 2))?;
             }
             f.write_char(co.dl)?;
-            f.write_char('\n')?;
+            writeln!(f)?;
         }
 
         // Print table headers
@@ -222,7 +222,7 @@ where
             let space = " ".repeat(w - k.chars().count());
             write!(f, " {c_header}{k}{space} {c_line}{}", copt.v)?;
         }
-        f.write_char('\n')?;
+        writeln!(f)?;
 
         // Print header separator
         for (i, w) in widths.iter().enumerate() {
@@ -240,7 +240,7 @@ where
             .max()
             .unwrap_or_default();
         for r in 0..complete_rows {
-            f.write_char('\n')?;
+            writeln!(f)?;
             f.write_str(&c_line)?;
             f.write_char(copt.v)?;
             for (i, width) in widths.iter().enumerate() {
@@ -252,7 +252,7 @@ where
 
         // Conditionally print bottom table cap
         if let Some(co) = &copt.caps {
-            f.write_char('\n')?;
+            writeln!(f)?;
             for (i, w) in widths.iter().enumerate() {
                 f.write_char(if i == 0 { co.ur } else { co.hu })?;
                 f.write_str(&copt.h.to_string().repeat(*w + 2))?;
@@ -333,7 +333,7 @@ where
             let space = " ".repeat(keys_width - k.chars().count());
             let bullet = &self.options.bullet;
             if i != 0 {
-                f.write_char('\n')?;
+                writeln!(f)?;
             }
             write!(f, "{col_l}{bullet}{col_k}{k}{space} {col_l}: {col_r}{v}")?;
         }
