@@ -6,7 +6,7 @@ use std::{
     str::FromStr,
 };
 
-pub const BUILTIN_ACTIVITY_IDLE_NAME: &str = "Idle";
+pub const BUILTIN_ACTIVITY_IDLE_NAME: &str = "idle";
 pub const BUILTIN_ACTIVITY_IDLE_WBS: &str = "Idle";
 
 #[derive(Debug, Clone)]
