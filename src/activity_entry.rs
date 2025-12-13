@@ -112,6 +112,18 @@ impl ActivityEntry {
             time_stamp: Local::now(),
         })
     }
+    pub fn with_timestamp(&self, time_stamp: DateTime<Local>) -> Self {
+        match self {
+            ActivityEntry::Start(activity_start) => ActivityEntry::Start(ActivityStart {
+                time_stamp,
+                activity_name: activity_start.activity_name.clone(),
+                attendance_type: activity_start.attendance_type.clone(),
+                description: activity_start.description.clone(),
+                wbs: activity_start.wbs.clone(),
+            }),
+            ActivityEntry::End(activity_end) => ActivityEntry::End(ActivityEnd { time_stamp }),
+        }
+    }
     pub fn time_stamp(&self) -> &DateTime<Local> {
         match self {
             ActivityEntry::Start(start) => start.time_stamp(),

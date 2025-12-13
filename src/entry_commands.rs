@@ -204,7 +204,11 @@ fn show_activity_range(show_opts: &cli::Show, quantity: &ActivityRange) -> Resul
     };
 
     if activities.is_empty() {
-        println!("You have not recorded any data yet");
+        if get_last_entry()?.is_none() {
+            println!("You have not recorded any data yet")
+        } else {
+            println!("You have not recorded any data in the requested timeframe");
+        }
     } else if show_opts.machine_readable {
         for activity in activities {
             println!("{activity}");
@@ -318,6 +322,8 @@ fn get_activities_since(start_time: &DateTime<Local>) -> Result<Vec<TrackedActiv
 }
 
 /// Fetch entries since `start_time` in reversed order
+/// The first entry before `start_time` will also be included
+/// This allows showing an activity that was currently running at `start_time`
 fn get_backwards_entries_since(start_time: &DateTime<Local>) -> Result<Vec<ActivityEntry>> {
     let path = &files::get_entry_file_path()?;
     if !fs::exists(path)? {
@@ -327,10 +333,11 @@ fn get_backwards_entries_since(start_time: &DateTime<Local>) -> Result<Vec<Activ
     let file = fs::File::open(path)?;
     for line in RawRevLines::new(file) {
         let entry = entry_from_byte_result(line)?;
-        if entry.time_stamp() < start_time {
+        let time = *entry.time_stamp();
+        entries.push(entry);
+        if &time <= start_time {
             break;
         }
-        entries.push(entry);
     }
     Ok(entries)
 }
