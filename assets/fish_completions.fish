@@ -1,3 +1,15 @@
+function __timetrack_range_suggestions
+    set -l token (commandline -ct)
+    echo -e 0\n1\nhour\nday\nweek\nmonth
+    if string match -qr '^(-[a-z])?[0-9]+' -- $token
+        set -l n (string match -r '[0-9]+' -- $token)
+        if test "$n" = 1
+            echo $n\n"$n"hour\n"$n"day\n"$n"week\n"$n"month
+        else
+            echo $n\n"$n"hours\n"$n"days\n"$n"weeks\n"$n"months
+        end
+    end
+end
 function __timetrack_activity_subcommands
     timetrack activity help | awk '
         /^\w/ { c = 0 }
@@ -41,6 +53,7 @@ complete -c timetrack -f \
     -n '__fish_seen_subcommand_from activity' \
     -a"(__timetrack_activity_subcommands)"
 
+# Subcommand start
 complete -c timetrack \
     -rfl attendance \
     -n '__fish_seen_subcommand_from start' \
@@ -56,3 +69,13 @@ complete -c timetrack -fl verbose \
     -n '__fish_seen_subcommand_from start'
 complete -c timetrack -fs v \
     -n '__fish_seen_subcommand_from start'
+
+# Subcommand show
+complete -c timetrack \
+    -rfs l \
+    -n '__fish_seen_subcommand_from show' \
+    -a "(__timetrack_range_suggestions)"
+complete -c timetrack \
+    -rfl last \
+    -n '__fish_seen_subcommand_from show' \
+    -a "(__timetrack_range_suggestions)"
