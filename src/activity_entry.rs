@@ -113,7 +113,10 @@ impl Iterator for SplitActivity {
                 .unwrap()
                 + TimeDelta::days(1);
             self.current_start = Some(start.with_timestamp(next_midnight));
-            Some(TrackedActivity::new_completed(start, next_midnight))
+            Some(TrackedActivity::new_completed(
+                start,
+                next_midnight - TimeDelta::nanoseconds(1),
+            ))
         } else {
             Some(TrackedActivity::new(start, self.end))
         }
