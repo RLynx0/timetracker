@@ -298,7 +298,7 @@ fn get_last_n_activities(count: usize) -> Result<Vec<TrackedActivity>> {
         if let ActivityEntry::Start(start_entry) = entry {
             activities.extend(
                 TrackedActivity::new(start_entry, end_timestamp)
-                    .split_on_midnight()
+                    .split_on_midnight(Local::now())
                     .collect::<Vec<_>>()
                     .into_iter()
                     .rev()
@@ -319,7 +319,7 @@ fn get_activities_since(start_time: &DateTime<Local>) -> Result<Vec<TrackedActiv
         if let Some(last) = last_activity_start {
             activities.extend(
                 TrackedActivity::new_completed(last, *entry.time_stamp())
-                    .split_on_midnight()
+                    .split_on_midnight(Local::now())
                     .filter(|a| a.end_time().map(|t| t >= start_time).unwrap_or(true)),
             );
         }

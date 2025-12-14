@@ -54,10 +54,11 @@ impl TrackedActivity {
         }
     }
 
-    pub fn split_on_midnight(self) -> SplitActivity {
+    pub fn split_on_midnight(self, end_fallback: DateTime<Local>) -> SplitActivity {
         SplitActivity {
             current_start: Some(self.start_entry),
             end: self.end,
+            end_fallback,
         }
     }
 
@@ -97,12 +98,13 @@ impl Display for TrackedActivity {
 pub struct SplitActivity {
     current_start: Option<ActivityStart>,
     end: Option<DateTime<Local>>,
+    end_fallback: DateTime<Local>,
 }
 impl Iterator for SplitActivity {
     type Item = TrackedActivity;
     fn next(&mut self) -> Option<Self::Item> {
         let start = self.current_start.take()?;
-        let end = self.end.unwrap_or(Local::now());
+        let end = self.end.unwrap_or(self.end_fallback);
         if start.time_stamp.date_naive() < end.date_naive() {
             let next_midnight = start
                 .time_stamp
