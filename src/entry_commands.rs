@@ -292,12 +292,18 @@ fn get_last_n_activities(count: usize) -> Result<Vec<TrackedActivity>> {
     while let Some(line) = rev_lines.next()
         && activities.len() < count
     {
-        // TODO: split activities
         let entry = entry_from_byte_result(line)?;
         let end_timestamp = last_timestamp.take();
         last_timestamp = Some(*entry.time_stamp());
         if let ActivityEntry::Start(start_entry) = entry {
-            activities.push(TrackedActivity::new(start_entry, end_timestamp))
+            activities.extend(
+                TrackedActivity::new(start_entry, end_timestamp)
+                    .split_on_midnight()
+                    .collect::<Vec<_>>()
+                    .into_iter()
+                    .rev()
+                    .take(count - activities.len()),
+            );
         }
     }
 
