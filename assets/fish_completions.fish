@@ -49,11 +49,10 @@ complete -c timetrack -f \
     -n __fish_use_subcommand \
     -a "(__timetrack_subcommands)"
 
-complete -c timetrack -f \
-    -n '__fish_seen_subcommand_from activity' \
-    -a"(__timetrack_activity_subcommands)"
-
 # Subcommand start
+complete -c timetrack -f \
+    -n '__fish_seen_subcommand_from start' \
+    -a "(__timetrack_activities)"
 complete -c timetrack \
     -rfl attendance \
     -n '__fish_seen_subcommand_from start' \
@@ -62,9 +61,18 @@ complete -c timetrack \
     -rfs a \
     -n '__fish_seen_subcommand_from start' \
     -a "(__timetrack_attendance_types)"
-complete -c timetrack -f \
-    -n '__fish_seen_subcommand_from start' \
-    -a "(__timetrack_activities)"
+complete -c timetrack \
+    -rfl description \
+    -n '__fish_seen_subcommand_from start'
+complete -c timetrack \
+    -rfs d \
+    -n '__fish_seen_subcommand_from start'
+complete -c timetrack \
+    -fl help \
+    -n '__fish_seen_subcommand_from start'
+complete -c timetrack \
+    -fs h \
+    -n '__fish_seen_subcommand_from start'
 complete -c timetrack -fl verbose \
     -n '__fish_seen_subcommand_from start'
 complete -c timetrack -fs v \
@@ -79,3 +87,51 @@ complete -c timetrack \
     -rfl last \
     -n '__fish_seen_subcommand_from show' \
     -a "(__timetrack_range_suggestions)"
+complete -c timetrack \
+    -fl machine-readable \
+    -n '__fish_seen_subcommand_from show'
+complete -c timetrack \
+    -fs m \
+    -n '__fish_seen_subcommand_from show'
+complete -c timetrack \
+    -fl help \
+    -n '__fish_seen_subcommand_from show'
+complete -c timetrack \
+    -fs h \
+    -n '__fish_seen_subcommand_from show'
+
+# Subcommand activity
+complete -c timetrack -f \
+    -n '__fish_seen_subcommand_from activity' \
+    -n 'not __fish_seen_subcommand_from new rm mv ls help' \
+    -a"(__timetrack_activity_subcommands)"
+
+# Subcommand activity ls
+complete -c timetrack -f \
+    -n '__fish_seen_subcommand_from activity' \
+    -n '__fish_seen_subcommand_from ls' \
+    -a "(__timetrack_activities)"
+complete -c timetrack \
+    -fl recursive \
+    -n '__fish_seen_subcommand_from activity' \
+    -n '__fish_seen_subcommand_from ls'
+complete -c timetrack \
+    -fs r \
+    -n '__fish_seen_subcommand_from activity' \
+    -n '__fish_seen_subcommand_from ls'
+complete -c timetrack \
+    -fl machine-readable \
+    -n '__fish_seen_subcommand_from activity' \
+    -n '__fish_seen_subcommand_from ls'
+complete -c timetrack \
+    -fs m \
+    -n '__fish_seen_subcommand_from activity' \
+    -n '__fish_seen_subcommand_from ls'
+complete -c timetrack \
+    -fl help \
+    -n '__fish_seen_subcommand_from activity' \
+    -n '__fish_seen_subcommand_from ls'
+complete -c timetrack \
+    -fs h \
+    -n '__fish_seen_subcommand_from activity' \
+    -n '__fish_seen_subcommand_from ls'
