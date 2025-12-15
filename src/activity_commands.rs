@@ -1,23 +1,10 @@
-use std::{
-    fmt::Display,
-    fs,
-    io::Write,
-    path::{Path, PathBuf},
-    rc::Rc,
-    str::FromStr,
-};
+use std::{fs, rc::Rc, str::FromStr};
 
-use color_eyre::{
-    Section,
-    eyre::{Result, format_err},
-};
+use color_eyre::eyre::{Result, format_err};
 
 use crate::{
     NONE_PRINT_VALUE, cli, files, print_smart_list, print_smart_table,
-    trackable::{
-        Activity, ActivityCategory, ActivityItemRef, ActivityLeaf, BUILTIN_ACTIVITY_IDLE_NAME,
-        PrintableActivityItem,
-    },
+    trackable::{Activity, ActivityCategory, ActivityItemRef, ActivityLeaf, PrintableActivityItem},
 };
 
 pub fn set_activity(set_opts: &cli::SetActivity) -> Result<()> {

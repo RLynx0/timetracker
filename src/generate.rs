@@ -2,10 +2,7 @@ use std::{collections::HashMap, rc::Rc};
 
 use chrono::{DateTime, Datelike, Local, NaiveDate, TimeDelta};
 
-use crate::{
-    activity_entry::{ActivityEntry, ActivityStart},
-    config::Config,
-};
+use crate::{activity_entry::TrackedActivity, config::Config};
 
 /// Grouping of activities with
 /// - Same wbs
@@ -21,37 +18,29 @@ struct CollapsedActivity {
     wbs: Rc<str>,
 }
 
-fn group_activities(
-    entries: &[ActivityEntry],
-    from: &DateTime<Local>,
-    to: &DateTime<Local>,
+fn collapse_activities(
+    activities: &[TrackedActivity],
+    end_fallback: DateTime<Local>,
 ) -> Vec<CollapsedActivity> {
     let mut grouped_activities = HashMap::new();
-    let mut previous_entry: Option<&ActivityStart> = None;
-    for current_entry in entries
+    let activities: Vec<_> = activities
         .iter()
-        .skip_while(|e| e.time_stamp() < from)
-        .take_while(|e| e.time_stamp() < to)
-    {
-        if let Some(previous) = previous_entry {
-            grouped_activities
-                .entry(get_group_key(previous))
-                .or_insert_with(|| CollapsedActivity {
-                    attendance_type: Rc::from(previous.attendance()),
-                    description: Rc::from(previous.description()),
-                    duration: TimeDelta::zero(),
-                    start_of_first: *previous.time_stamp(),
-                    wbs: Rc::from(previous.wbs()),
-                })
-                .duration += *current_entry.time_stamp() - previous.time_stamp()
-        }
-        previous_entry = match current_entry {
-            ActivityEntry::Start(activity_start) => Some(activity_start),
-            ActivityEntry::End(_) => None,
-        };
+        .cloned()
+        .flat_map(|t| t.split_on_midnight(end_fallback))
+        .collect();
+    for activity in &activities {
+        grouped_activities
+            .entry(get_group_key(activity))
+            .or_insert_with(|| CollapsedActivity {
+                attendance_type: activity.attendance().into(),
+                description: activity.description().into(),
+                duration: TimeDelta::zero(),
+                start_of_first: *activity.start_time(),
+                wbs: activity.wbs().into(),
+            })
+            .duration +=
+            activity.end_time().copied().unwrap_or(Local::now()) - activity.start_time();
     }
-
-    // TODO: Handle last entry
 
     let mut grouped_activities = Vec::from_iter(grouped_activities.into_values());
     grouped_activities.sort_unstable_by(|a, b| a.start_of_first.cmp(&b.start_of_first));
@@ -66,12 +55,12 @@ struct ActivityGroupKey<'a> {
     date: NaiveDate,
 }
 
-fn get_group_key<'a>(activity: &'a ActivityStart) -> ActivityGroupKey<'a> {
+fn get_group_key<'a>(activity: &'a TrackedActivity) -> ActivityGroupKey<'a> {
     ActivityGroupKey {
         wbs: activity.wbs(),
         attendance_type: activity.attendance(),
         description: activity.description(),
-        date: activity.time_stamp().naive_local().date(),
+        date: activity.start_time().naive_local().date(),
     }
 }
 

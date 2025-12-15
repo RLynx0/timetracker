@@ -10,7 +10,7 @@ use chrono::{DateTime, Local, TimeDelta};
 use color_eyre::{
     Section,
     eyre::{Result, format_err},
-    owo_colors::{Color, OwoColorize},
+    owo_colors::OwoColorize,
 };
 use owo_colors::Stream;
 use rev_lines::RawRevLines;
@@ -21,7 +21,6 @@ use crate::{
     activity_entry::{ActivityEntry, ActivityStart, TrackedActivity},
     activity_range::ActivityRange,
     cli, files, get_config, print_smart_list, print_smart_table,
-    trackable::{Activity, ActivityLeaf, BUILTIN_ACTIVITY_IDLE_NAME},
 };
 
 pub fn start_activity(start_opts: &cli::Start) -> Result<()> {
