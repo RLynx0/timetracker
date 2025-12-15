@@ -1,6 +1,6 @@
 use std::{fs, rc::Rc, str::FromStr};
 
-use color_eyre::eyre::{Result, format_err};
+use color_eyre::eyre::{Context, Result, format_err};
 
 use crate::{
     NONE_PRINT_VALUE, cli, files, print_smart_list, print_smart_table,
@@ -30,7 +30,10 @@ pub fn list_activities(opts: &cli::ListActivities) -> Result<()> {
         .unwrap_or_default();
     let activities = get_all_trackable_activities()?;
     let hierarchy = ActivityCategory::from(activities);
-    match hierarchy.get_item_at(&search_path).unwrap() {
+    match hierarchy
+        .get_item_at(&search_path)
+        .wrap_err("failed to look up activity item")?
+    {
         ActivityItemRef::Leaf(l) => print_single(l, opts.machine_readable),
         ActivityItemRef::Category(c) => print_hierarchy(c, opts.recursive, opts.machine_readable),
     };

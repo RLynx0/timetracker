@@ -1,5 +1,3 @@
-// #![allow(unused)] // TODO: Remove this when more things are implemented
-
 use std::{
     fs,
     io::{Write, stdin, stdout},

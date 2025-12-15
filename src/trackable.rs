@@ -4,6 +4,7 @@ use std::{
     fmt::Display,
     rc::Rc,
     str::FromStr,
+    sync::Arc,
 };
 
 pub const BUILTIN_ACTIVITY_IDLE_NAME: &str = "idle";
@@ -108,12 +109,28 @@ pub enum ActivityItemRef<'a> {
     Category(&'a ActivityCategory),
 }
 #[derive(Debug, Clone)]
-pub enum LookupError<'a> {
-    NotACategory(&'a [&'a str]),
+pub enum LookupError {
+    NotACategory(Vec<Arc<str>>),
     NoSuchItem {
-        path: &'a [&'a str],
-        requested: &'a str,
+        path: Vec<Arc<str>>,
+        requested: Arc<str>,
     },
+}
+impl std::error::Error for LookupError {}
+impl Display for LookupError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LookupError::NotACategory(path) => {
+                writeln!(f, "{} is not an activity category", path.join("/"))
+            }
+            LookupError::NoSuchItem { path, requested } if path.is_empty() => {
+                write!(f, "{requested} does not exist")
+            }
+            LookupError::NoSuchItem { path, requested } => {
+                write!(f, "{requested} does not exist in {}/", path.join("/"))
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -148,11 +165,13 @@ impl ActivityCategory {
     pub fn get_item_at<'a, 'b>(
         &'a self,
         path: &'b [&'b str],
-    ) -> Result<ActivityItemRef<'a>, LookupError<'b>> {
+    ) -> Result<ActivityItemRef<'a>, LookupError> {
         let mut out = ActivityItemRef::Category(self);
         for (i, part) in path.iter().copied().map(Rc::from).enumerate() {
             let category = match out {
-                ActivityItemRef::Leaf(_) => Err(LookupError::NotACategory(&path[..i])),
+                ActivityItemRef::Leaf(_) => Err(LookupError::NotACategory(
+                    path.iter().copied().map(Arc::from).collect(),
+                )),
                 ActivityItemRef::Category(category) => Ok(category),
             }?;
             out = category
@@ -160,9 +179,9 @@ impl ActivityCategory {
                 .get(&part)
                 .map(ActivityItemRef::Category)
                 .or(category.leafs.get(&part).map(ActivityItemRef::Leaf))
-                .ok_or(LookupError::NoSuchItem {
-                    path: &path[..i],
-                    requested: path[i],
+                .ok_or_else(|| LookupError::NoSuchItem {
+                    path: path.iter().copied().map(Arc::from).collect(),
+                    requested: Arc::from(path[i]),
                 })?;
         }
         Ok(out)
