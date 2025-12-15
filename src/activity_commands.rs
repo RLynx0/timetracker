@@ -30,10 +30,7 @@ pub fn list_activities(opts: &cli::ListActivities) -> Result<()> {
         .unwrap_or_default();
     let activities = get_all_trackable_activities()?;
     let hierarchy = ActivityCategory::from(activities);
-    match hierarchy
-        .get_item_at(&search_path)
-        .wrap_err("failed to look up activity item")?
-    {
+    match hierarchy.get_item_at(&search_path)? {
         ActivityItemRef::Leaf(l) => print_single(l, opts.machine_readable),
         ActivityItemRef::Category(c) => print_hierarchy(c, opts.recursive, opts.machine_readable),
     };
