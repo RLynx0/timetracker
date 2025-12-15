@@ -10,7 +10,9 @@ use chrono::{DateTime, Local, TimeDelta};
 use color_eyre::{
     Section,
     eyre::{Result, format_err},
+    owo_colors::{Color, OwoColorize},
 };
+use owo_colors::Stream;
 use rev_lines::RawRevLines;
 
 use crate::{
@@ -21,10 +23,6 @@ use crate::{
     cli, files, get_config, print_smart_list, print_smart_table,
     trackable::{Activity, ActivityLeaf, BUILTIN_ACTIVITY_IDLE_NAME},
 };
-
-const ANSII_RED: &str = "\u{001b}[31m";
-const ANSII_GREEN: &str = "\u{001b}[32m";
-const ANSII_RESET: &str = "\u{001b}[0m";
 
 pub fn start_activity(start_opts: &cli::Start) -> Result<()> {
     let config = &get_config()?;
@@ -56,9 +54,15 @@ pub fn start_activity(start_opts: &cli::Start) -> Result<()> {
 
     if let Some(ActivityEntry::Start(last_start)) = last_entry.as_ref() {
         let last_name = last_start.name();
-        println!("Stopped tracking {ANSII_RED}'{last_name}'{ANSII_RESET}");
+        println!(
+            "Stopped tracking '{}'",
+            last_name.if_supports_color(Stream::Stdout, |n| n.red())
+        );
     }
-    println!("Started tracking {ANSII_GREEN}'{activity_name}'{ANSII_RESET}");
+    println!(
+        "Started tracking '{}'",
+        activity_name.if_supports_color(Stream::Stdout, |n| n.green())
+    );
 
     let timestamp = entry.time_stamp();
     if start_opts.verbose {
@@ -89,7 +93,10 @@ pub fn end_activity(end_opts: &cli::End) -> Result<()> {
             write_entry(&entry)?;
 
             let stopped = last_start.name();
-            println!("Stopped tracking {ANSII_RED}'{stopped}'{ANSII_RESET}");
+            println!(
+                "Stopped tracking '{}'",
+                stopped.if_supports_color(Stream::Stdout, |n| n.red())
+            );
             let timestamp = entry.time_stamp();
             if end_opts.verbose {
                 print_smart_list! {
@@ -149,8 +156,10 @@ fn show_current_entry(show_opts: &cli::Show) -> Result<()> {
         }
         Some(ActivityEntry::Start(entry)) => {
             println!(
-                "Tracking activity {ANSII_GREEN}'{}'{ANSII_RESET}",
-                entry.name()
+                "Tracking activity '{}'",
+                entry
+                    .name()
+                    .if_supports_color(Stream::Stdout, |n| n.green())
             );
 
             let config = get_config()?;
