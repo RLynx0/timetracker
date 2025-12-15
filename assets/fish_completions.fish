@@ -3,11 +3,9 @@ function __timetrack_range_suggestions
     echo -e 0\n1\nhour\nday\nweek\nmonth
     if string match -qr '^(-[a-z])?[0-9]+' -- $token
         set -l n (string match -r '[0-9]+' -- $token)
-        if test "$n" = 1
-            echo $n\n"$n"hour\n"$n"day\n"$n"week\n"$n"month
-        else
-            echo $n\n"$n"hours\n"$n"days\n"$n"weeks\n"$n"months
-        end
+        test "$n" = 1 \
+            && echo $n\n"$n"hour\n"$n"day\n"$n"week\n"$n"month \
+            || echo $n\n"$n"hours\n"$n"days\n"$n"weeks\n"$n"months
     end
 end
 function __timetrack_activity_subcommands
