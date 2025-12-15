@@ -4,9 +4,10 @@ use chrono::{DateTime, Datelike, Local, NaiveDate, TimeDelta};
 use color_eyre::eyre::Result;
 
 use crate::{
-    activity_entry::TrackedActivity, activity_range::InLast, cli, config::Config,
-    entry_commands::get_activities_since, get_config,
+    activity_entry::TrackedActivity, activity_range::InLast, cli, config::Config, get_config,
 };
+
+use super::get_activities_since;
 
 pub fn handle_generate(generate_opts: &cli::Generate) -> Result<()> {
     let now = Local::now();
@@ -56,7 +57,7 @@ pub fn handle_generate(generate_opts: &cli::Generate) -> Result<()> {
 /// - Same attendance type
 /// - Same local date (precise time is irrelevant)
 #[derive(Debug, Clone)]
-struct CollapsedActivity {
+pub struct CollapsedActivity {
     attendance_type: Rc<str>,
     description: Rc<str>,
     duration: TimeDelta,
@@ -64,7 +65,7 @@ struct CollapsedActivity {
     wbs: Rc<str>,
 }
 
-fn collapse_activities(
+pub fn collapse_activities(
     activities: &[TrackedActivity],
     end_fallback: DateTime<Local>,
 ) -> Vec<CollapsedActivity> {

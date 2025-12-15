@@ -8,7 +8,7 @@ use std::{
 use clap::Parser;
 use color_eyre::eyre::{Context, Result};
 
-use crate::{cli::Cli, config::Config, generate::handle_generate};
+use crate::{cli::Cli, config::Config};
 
 mod activity_commands;
 mod activity_entry;
@@ -18,7 +18,6 @@ mod config;
 mod entry_commands;
 mod files;
 mod format_string;
-mod generate;
 mod printable;
 mod trackable;
 
@@ -44,7 +43,9 @@ fn handle_ttr_command(opts: &Cli) -> Result<()> {
         cli::TtrCommand::Edit(_) => {
             entry_commands::open_entry_file().wrap_err("failed to open entry file")
         }
-        cli::TtrCommand::Generate(opts) => handle_generate(opts),
+        cli::TtrCommand::Generate(opts) => {
+            entry_commands::handle_generate(opts).wrap_err("failed to generate output")
+        }
         cli::TtrCommand::Activity(opts) => handle_activity_command(opts),
 
         // Additional convenience commands

@@ -148,12 +148,6 @@ impl ActivityEntry {
             time_stamp: Local::now(),
         })
     }
-    pub fn with_timestamp(&self, time_stamp: DateTime<Local>) -> Self {
-        match self {
-            ActivityEntry::Start(start) => ActivityEntry::Start(start.with_timestamp(time_stamp)),
-            ActivityEntry::End(activity_end) => ActivityEntry::End(ActivityEnd { time_stamp }),
-        }
-    }
     pub fn time_stamp(&self) -> &DateTime<Local> {
         match self {
             ActivityEntry::Start(start) => start.time_stamp(),
