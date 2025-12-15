@@ -1,7 +1,7 @@
-use std::{collections::HashMap, fmt::Display, fs, io::Write, rc::Rc};
+use std::{collections::HashMap, fmt::Display, fs, io::Write, path::PathBuf, rc::Rc};
 
 use chrono::{DateTime, Datelike, Local, NaiveDate, TimeDelta};
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{Result, format_err};
 
 use crate::{
     activity_entry::TrackedActivity, activity_range::InLast, cli, config::Config, get_config,
@@ -16,10 +16,6 @@ pub fn handle_generate(generate_opts: &cli::Generate) -> Result<()> {
     let collapsed = collapse_activities(&activities, now);
 
     let config = get_config()?;
-    let file_vars = vars_per_generated_file(&config, start_time.date_naive());
-    let file_name = config.output.file_name_format.evaluate(&file_vars)?;
-    let file_name = generate_opts.file_path.as_ref().unwrap_or(&file_name);
-
     let keys = config.output.keys.join(&config.output.delimiter);
     let lines = collapsed
         .iter()
@@ -38,15 +34,29 @@ pub fn handle_generate(generate_opts: &cli::Generate) -> Result<()> {
 
     if generate_opts.stdout {
         println!("{keys}\n{lines}");
-    } else {
-        let mut file = fs::OpenOptions::new()
-            .create(true)
-            .write(true)
-            .truncate(true)
-            .open(file_name)?;
-        writeln!(&mut file, "{keys}\n{lines}")?;
-        println!("Generated {file_name}");
+        return Ok(());
     }
+
+    let file_vars = vars_per_generated_file(&config, start_time.date_naive());
+    let default_name = config.output.file_name_format.evaluate(&file_vars)?;
+    let file_path = generate_opts.file_path.as_ref().unwrap_or(&default_name);
+    let mut file_path = PathBuf::from(file_path);
+    while fs::exists(&file_path)? {
+        if file_path.is_dir() {
+            file_path.push(&default_name);
+        } else {
+            return Err(format_err!("{file_path:?} already exists"));
+        }
+    }
+
+    let mut file = fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(true)
+        .open(&file_path)?;
+
+    writeln!(&mut file, "{keys}\n{lines}")?;
+    println!("Generated {file_path:?}");
 
     Ok(())
 }
