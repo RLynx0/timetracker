@@ -13,7 +13,7 @@ use color_eyre::{
 };
 
 use crate::{
-    NONE_PRINT_VALUE, cli, files, print_smart_table,
+    NONE_PRINT_VALUE, cli, files, print_smart_list, print_smart_table,
     trackable::{
         Activity, ActivityCategory, ActivityItemRef, ActivityLeaf, BUILTIN_ACTIVITY_IDLE_NAME,
         PrintableActivityItem,
@@ -40,15 +40,25 @@ pub fn list_activities(opts: &cli::ListActivities) -> Result<()> {
     let activities = get_all_trackable_activities()?;
     let hierarchy = ActivityCategory::from(activities);
     match hierarchy.get_item_at(&search_path).unwrap() {
-        ActivityItemRef::Leaf(l) => {
-            return Err(format_err!("{} is not an activity category", l.name()))
-                .with_note(|| "Can only list contents of categories");
-        }
+        ActivityItemRef::Leaf(l) => print_single(l, opts.machine_readable),
         ActivityItemRef::Category(c) => print_hierarchy(c, opts.recursive, opts.machine_readable),
     };
 
     Ok(())
 }
+
+fn print_single(leaf: &ActivityLeaf, machine_readable: bool) {
+    if machine_readable {
+        println!("{leaf}");
+    } else {
+        print_smart_list! {
+            "Name" => leaf.name(),
+            "WBS" => leaf.wbs(),
+            "Description" => leaf.description().unwrap_or_default(),
+        }
+    }
+}
+
 fn print_hierarchy(hierarchy: &ActivityCategory, recursive: bool, machine_readable: bool) {
     if recursive {
         let expanded = hierarchy.to_activities_sorted();
