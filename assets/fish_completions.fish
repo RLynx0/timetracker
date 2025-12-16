@@ -24,7 +24,7 @@ end
 function __timetrack_range_suggestions
     set -l token (commandline -ct)
     echo -e 0\n1\nhour\nday\nweek\nmonth
-    if string match -qr '^(-[a-z])?[0-9]+' -- $token
+    if string match -qr '^(-[a-z]+)?[0-9]+' -- $token
         set -l n (string match -r '[0-9]+' -- $token)
         test "$n" = 1 \
             && echo $n\n"$n"hour\n"$n"day\n"$n"week\n"$n"month \
