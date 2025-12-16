@@ -58,32 +58,6 @@ fn show_current_entry(show_opts: &cli::Show) -> Result<()> {
     Ok(())
 }
 
-fn format_time_delta(delta: &TimeDelta) -> String {
-    let mut out = String::new();
-    let days = delta.num_days();
-    if days > 0 {
-        out.push_str(&format!("{days}d "))
-    }
-
-    let rem = *delta - TimeDelta::days(days);
-    let hours = rem.num_hours();
-    if hours > 0 {
-        out.push_str(&format!("{hours}h "))
-    }
-
-    let rem = rem - TimeDelta::hours(hours);
-    let minutes = rem.num_minutes();
-    if minutes > 0 {
-        out.push_str(&format!("{minutes}m "))
-    }
-
-    let rem = rem - TimeDelta::minutes(minutes);
-    let seconds = rem.num_seconds();
-    out.push_str(&format!("{seconds}s"));
-
-    out
-}
-
 fn show_activity_range(show_opts: &cli::Show, quantity: &ActivityRange) -> Result<()> {
     let activities = match quantity {
         ActivityRange::Count(n) => get_last_n_activities(*n as usize)?,
@@ -101,22 +75,25 @@ fn show_activity_range(show_opts: &cli::Show, quantity: &ActivityRange) -> Resul
 
     match show_opts.mode {
         cli::ShowMode::Entries => {
-            show_individual_activities(activities, show_opts.machine_readable)
+            show_individual_activities(&activities, show_opts.machine_readable);
         }
         cli::ShowMode::Collapsed => {
-            show_collapsed_activities(&activities, show_opts.machine_readable)
+            show_collapsed_activities(&activities, show_opts.machine_readable);
         }
         cli::ShowMode::Attendance => todo!(),
-        cli::ShowMode::Time => todo!(),
+        cli::ShowMode::Time => {
+            show_activity_time(&activities, show_opts.machine_readable);
+        }
     }
 
     Ok(())
 }
 
-fn show_individual_activities(
-    activities: impl IntoIterator<Item = TrackedActivity>,
-    machine_readable: bool,
-) {
+// ------- //
+// Entries //
+// ------- //
+
+fn show_individual_activities(activities: &[TrackedActivity], machine_readable: bool) {
     if machine_readable {
         for activity in activities {
             println!("{activity}");
@@ -126,7 +103,7 @@ fn show_individual_activities(
     }
 }
 
-fn print_activitiy_table(activities: impl IntoIterator<Item = TrackedActivity>) {
+fn print_activitiy_table(activities: &[TrackedActivity]) {
     let mut col_date: Vec<Rc<str>> = Vec::new();
     let mut col_start: Vec<Rc<str>> = Vec::new();
     let mut col_end: Vec<Rc<str>> = Vec::new();
@@ -170,6 +147,10 @@ fn print_activitiy_table(activities: impl IntoIterator<Item = TrackedActivity>) 
     }
 }
 
+// --------- //
+// Collapsed //
+// --------- //
+
 fn show_collapsed_activities(activities: &[TrackedActivity], machine_readable: bool) {
     let collapsed_activities = collapse_activities(activities, Local::now());
     if machine_readable {
@@ -209,4 +190,51 @@ fn print_collapsed_activity_table(collapsed_activities: &[CollapsedActivity]) {
         "WBS" => col_wbs,
         "Description" => col_description,
     }
+}
+
+// ---- //
+// Time //
+// ---- //
+
+fn show_activity_time(activities: &[TrackedActivity], machine_readable: bool) {
+    let delta = activities
+        .first()
+        .and_then(|a| Some((a, activities.last()?)))
+        .map(|(first, last)| last.end_time().copied().unwrap_or(Local::now()) - first.start_time())
+        .unwrap_or_default();
+    if machine_readable {
+        println!("{:.2}", delta.as_seconds_f64());
+    } else {
+        println!("{}", format_time_delta(&delta));
+    }
+}
+
+// ------- //
+// General //
+// ------- //
+
+fn format_time_delta(delta: &TimeDelta) -> String {
+    let mut out = String::new();
+    let days = delta.num_days();
+    if days > 0 {
+        out.push_str(&format!("{days}d "))
+    }
+
+    let rem = *delta - TimeDelta::days(days);
+    let hours = rem.num_hours();
+    if hours > 0 {
+        out.push_str(&format!("{hours}h "))
+    }
+
+    let rem = rem - TimeDelta::hours(hours);
+    let minutes = rem.num_minutes();
+    if minutes > 0 {
+        out.push_str(&format!("{minutes}m "))
+    }
+
+    let rem = rem - TimeDelta::minutes(minutes);
+    let seconds = rem.num_seconds();
+    out.push_str(&format!("{seconds}s"));
+
+    out
 }
