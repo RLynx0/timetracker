@@ -124,34 +124,27 @@ impl Display for AttendanceRange {
 
 pub fn get_attendance_ranges(activities: &[TrackedActivity]) -> Vec<AttendanceRange> {
     let mut ranges = Vec::new();
-    let mut last_activity: Option<AttendanceRange> = None;
+    let mut last_range: Option<AttendanceRange> = None;
     for activity in activities {
-        if let Some(last) = last_activity {
-            last_activity = Some(
-                if last.end == Some(*activity.start_time())
-                    && activity.attendance() == Rc::as_ref(&last.attendance_type)
-                {
-                    AttendanceRange {
-                        end: activity.end_time().copied(),
-                        ..last
-                    }
-                } else {
-                    ranges.push(last);
-                    AttendanceRange {
-                        start: *activity.start_time(),
-                        end: activity.end_time().copied(),
-                        attendance_type: Rc::from(activity.attendance()),
-                    }
-                },
-            )
-        } else {
-            last_activity = Some(AttendanceRange {
-                start: *activity.start_time(),
-                end: activity.end_time().copied(),
-                attendance_type: Rc::from(activity.attendance()),
-            });
-        }
+        let updated_range = last_range.and_then(|last| {
+            let follows_directly = last.end == Some(*activity.start_time());
+            let same_type = activity.attendance() == Rc::as_ref(&last.attendance_type);
+            if follows_directly && same_type {
+                Some(AttendanceRange {
+                    end: activity.end,
+                    ..last
+                })
+            } else {
+                ranges.push(last);
+                None
+            }
+        });
+        last_range = updated_range.or(Some(AttendanceRange {
+            start: *activity.start_time(),
+            end: activity.end_time().copied(),
+            attendance_type: Rc::from(activity.attendance()),
+        }));
     }
-    ranges.extend(last_activity);
+    ranges.extend(last_range);
     ranges
 }
