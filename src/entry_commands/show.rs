@@ -220,27 +220,21 @@ fn print_attendance_table(ranges: &[AttendanceRange]) {
     let none_value: Rc<str> = NONE_PRINT_VALUE.into();
 
     for range in ranges {
-        let end_or_now = range.end_time().copied().unwrap_or(Local::now());
         let quantum = TimeDelta::minutes(15);
         let start = range.start_time().duration_trunc(quantum).unwrap();
-        let end_or_now = end_or_now.duration_round_up(quantum).unwrap();
-        let delta = end_or_now - start;
-        let delta_adjusted = if delta <= TimeDelta::hours(6) {
-            delta
-        } else {
-            delta - TimeDelta::minutes(30)
-        };
-
+        let end_value = range.end_time().copied().unwrap_or(Local::now());
+        let end = end_value.duration_round_up(quantum).unwrap();
+        let delta = end - start;
         let hours = delta.as_seconds_f64() / 3600.0;
-        let end_str = match range.end_time() {
-            None => none_value.clone(),
-            Some(t) => t
-                .duration_round_up(quantum)
-                .unwrap()
-                .format("%H:%M")
-                .to_string()
-                .into(),
+        let delta_adjusted = match delta {
+            d if d <= TimeDelta::hours(6) => d,
+            d => d - TimeDelta::minutes(30),
         };
+        let end_str = range
+            .end_time()
+            .map(|t| t.duration_round_up(quantum).unwrap())
+            .map(|t| t.format("%H:%M").to_string().into())
+            .unwrap_or(none_value.clone());
 
         col_date.push(start.format("%Y-%m-%d").to_string().into());
         col_start.push(start.format("%H:%M").to_string().into());
