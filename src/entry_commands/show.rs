@@ -215,7 +215,7 @@ fn print_attendance_table(ranges: &[AttendanceRange]) {
     let mut col_start: Vec<Rc<str>> = Vec::new();
     let mut col_end: Vec<Rc<str>> = Vec::new();
     let mut col_hours: Vec<Rc<str>> = Vec::new();
-    let mut col_time_adjusted: Vec<Rc<str>> = Vec::new();
+    let mut col_hours_adjusted: Vec<Rc<str>> = Vec::new();
     let mut col_attendance: Vec<Rc<str>> = Vec::new();
     let none_value: Rc<str> = NONE_PRINT_VALUE.into();
 
@@ -224,23 +224,26 @@ fn print_attendance_table(ranges: &[AttendanceRange]) {
         let start = range.start_time().duration_trunc(quantum).unwrap();
         let end_value = range.end_time().copied().unwrap_or(Local::now());
         let end = end_value.duration_round_up(quantum).unwrap();
-        let delta = end - start;
-        let hours = delta.as_seconds_f64() / 3600.0;
-        let delta_adjusted = match delta {
-            d if d <= TimeDelta::hours(6) => d,
-            d => d - TimeDelta::minutes(30),
-        };
         let end_str = range
             .end_time()
             .map(|t| t.duration_round_up(quantum).unwrap())
             .map(|t| t.format("%H:%M").to_string().into())
             .unwrap_or(none_value.clone());
 
+        let delta = end - start;
+        let delta_adjusted = match delta {
+            d if d <= TimeDelta::hours(6) => d,
+            d => d - TimeDelta::minutes(30),
+        };
+
+        let hours = delta.as_seconds_f64() / 3600.0;
+        let hours_adjusted = delta_adjusted.as_seconds_f64() / 3600.0;
+
         col_date.push(start.format("%Y-%m-%d").to_string().into());
         col_start.push(start.format("%H:%M").to_string().into());
         col_end.push(end_str);
         col_hours.push(format!("{hours:.2}").into());
-        col_time_adjusted.push(format_time_delta(&delta_adjusted).into());
+        col_hours_adjusted.push(format!("{hours_adjusted:.2}").into());
         col_attendance.push(range.attendance().into());
     }
 
@@ -249,7 +252,7 @@ fn print_attendance_table(ranges: &[AttendanceRange]) {
         "Start" => col_start,
         "End" => col_end,
         "Hours" => col_hours,
-        "Adjusted Time" => col_time_adjusted,
+        "Adjusted Hours" => col_hours_adjusted,
         "Attendance" => col_attendance,
     }
 }
