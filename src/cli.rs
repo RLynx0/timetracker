@@ -112,7 +112,9 @@ pub enum ShowMode {
     Entries,
     /// Show a summary of tracked activities
     Collapsed,
-    /// Show the total tracked time
+    /// Show daily time and attendance, derived from selected activities
+    Attendance,
+    /// Show the total tracked time, derived from selected activities
     Time,
 }
 

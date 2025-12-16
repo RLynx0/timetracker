@@ -106,6 +106,7 @@ fn show_activity_range(show_opts: &cli::Show, quantity: &ActivityRange) -> Resul
         cli::ShowMode::Collapsed => {
             show_collapsed_activities(&activities, show_opts.machine_readable)
         }
+        cli::ShowMode::Attendance => todo!(),
         cli::ShowMode::Time => todo!(),
     }
 
