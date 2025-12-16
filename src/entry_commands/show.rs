@@ -262,16 +262,15 @@ fn print_attendance_table(ranges: &[AttendanceRange]) {
 // ---- //
 
 fn show_activity_time(activities: &[TrackedActivity], machine_readable: bool) {
-    let delta = activities
-        .first()
-        .and_then(|a| Some((a, activities.last()?)))
-        .map(|(first, last)| last.end_time().copied().unwrap_or(Local::now()) - first.start_time())
-        .unwrap_or_default();
+    let sum: TimeDelta = activities
+        .iter()
+        .map(|a| a.end_time().copied().unwrap_or(Local::now()) - a.start_time())
+        .sum();
     if machine_readable {
-        println!("{:.2}", delta.as_seconds_f64());
+        println!("{:.2}", sum.as_seconds_f64());
     } else {
         print_smart_list! {
-            "Tracked Time" => format_time_delta(&delta),
+            "Tracked Time" => format_time_delta(&sum),
         };
     }
 }
