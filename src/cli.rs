@@ -122,7 +122,19 @@ pub enum ShowMode {
 ///
 /// Set the EDITOR environment variable to use a specific program
 #[derive(Debug, Clone, Parser)]
-pub struct Edit;
+pub struct Edit {
+    #[clap(default_value = "entries")]
+    pub target: EditTarget,
+}
+#[derive(Debug, Clone, ValueEnum)]
+pub enum EditTarget {
+    /// Open the entry log file
+    Entries,
+    /// Open the config file
+    Config,
+    /// Open the activity definition file
+    Activities,
+}
 
 /// Generate output file for a specified time frame
 #[derive(Debug, Clone, Parser)]

@@ -41,8 +41,8 @@ fn handle_ttr_command(opts: &Cli) -> Result<()> {
         cli::TtrCommand::Show(opts) => {
             entry_commands::show_activities(opts).wrap_err("failed to show activitiy")
         }
-        cli::TtrCommand::Edit(_) => {
-            entry_commands::open_entry_file().wrap_err("failed to open entry file")
+        cli::TtrCommand::Edit(opts) => {
+            entry_commands::handle_edit(opts).wrap_err("failed to open entry file")
         }
         cli::TtrCommand::Generate(opts) => {
             entry_commands::handle_generate(opts).wrap_err("failed to generate output")

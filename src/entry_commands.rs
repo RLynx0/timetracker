@@ -1,6 +1,7 @@
 use std::{
     env, fs,
     io::{self, Write},
+    path::Path,
     process::Command,
     str::FromStr,
 };
@@ -17,7 +18,9 @@ use rev_lines::RawRevLines;
 use crate::{
     activity_commands::get_trackable_activity,
     activity_entry::{ActivityEntry, ActivityStart, TrackedActivity},
-    cli, files, get_config, print_smart_list,
+    cli,
+    files::{self, get_activity_file_path, get_entry_file_path, get_main_config_path},
+    get_config, print_smart_list,
 };
 
 pub use generate::handle_generate;
@@ -131,11 +134,20 @@ fn write_entry(entry: &ActivityEntry) -> Result<()> {
     Ok(())
 }
 
+pub fn handle_edit(edit_opts: &cli::Edit) -> Result<()> {
+    let path = match edit_opts.target {
+        cli::EditTarget::Entries => get_entry_file_path(),
+        cli::EditTarget::Config => get_main_config_path(),
+        cli::EditTarget::Activities => get_activity_file_path(),
+    }?;
+    open_editor_to_file(&path)
+}
+
 /// Opens the activity log with `EDITOR`
-pub fn open_entry_file() -> Result<()> {
+fn open_editor_to_file(path: &Path) -> Result<()> {
     let editor = env::var("EDITOR").unwrap_or(String::from("vi"));
     _ = Command::new(&editor)
-        .arg(files::get_entry_file_path()?)
+        .arg(path)
         .status()
         .map_err(|e| format_err!("Failed to open {editor}: {e}"))?;
     Ok(())
